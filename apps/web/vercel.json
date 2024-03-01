@@ -1,6 +1,4 @@
 {
-  "installCommand": "npm install && npm run patch",
-  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/:path*",

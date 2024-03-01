@@ -1,0 +1,20 @@
+{
+  "installCommand": "npm install && npm run patch",
+  "buildCommand": "npm run build",
+  "headers": [
+    {
+      "source": "/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; frame-src blob:; script-src 'self' http: https:; img-src 'self' storage.googleapis.com data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; object-src 'self' blob:;"
+        }
+      ]
+    }
+  ]
+}

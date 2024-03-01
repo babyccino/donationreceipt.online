@@ -1,0 +1,34 @@
+{
+  "name": "db",
+  "version": "1.0.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "clean": "rm -rf dist",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "drizzle:migrate": "npm exec drizzle-kit generate:sqlite --out migrations --schema db/schema.ts",
+    "drizzle:push": "npm exec drizzle-kit push:sqlite",
+    "firebase:emulator": "cd firebase && firebase emulators:start --import=./data --export-on-exit=./data"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.5.2",
+    "drizzle-orm": "^0.29.4",
+    "firebase-admin": "^12.0.0",
+    "utils": "*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.20.14",
+    "next-auth": "^4.24.6",
+    "stripe": "^14.18.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  }
+}

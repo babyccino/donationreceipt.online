@@ -1,0 +1,37 @@
+{
+  "name": "utils",
+  "version": "1.0.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/* --format esm,cjs --dts",
+    "clean": "rm -rf dist",
+    "dev": "tsup src/* --format esm,cjs --watch --dts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.523.0",
+    "@react-email/render": "^0.0.12",
+    "@react-pdf/renderer": "^3.3.8",
+    "drizzle-orm": "^0.29.4",
+    "moment": "^2.30.1",
+    "nodemailer": "^6.9.10",
+    "sharp": "^0.33.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@google-cloud/storage": "^7.7.0",
+    "@types/aws-lambda": "^8.10.134",
+    "bun-types": "^1.0.29",
+    "file64": "^1.0.3",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  }
+}

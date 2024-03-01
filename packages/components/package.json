@@ -1,0 +1,40 @@
+{
+  "name": "components",
+  "version": "1.0.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist/**"],
+  "scripts": {
+    "build": "tsup src/* --format esm,cjs --dts --external react",
+    "clean": "rm -rf dist",
+    "dev": "tsup src/* --format esm,cjs --watch --dts --external react",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.523.0",
+    "@heroicons/react": "^2.1.1",
+    "@react-email/render": "^0.0.12",
+    "@react-pdf/renderer": "^3.3.8",
+    "db": "*",
+    "drizzle-orm": "^0.29.4",
+    "flowbite-react": "^0.7.2",
+    "nodemailer": "^6.9.10",
+    "utils": "*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@react-email/components": "^0.0.15",
+    "@types/aws-lambda": "^8.10.134",
+    "@types/react": "^18.2.60",
+    "@types/react-dom": "^18.2.19",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  }
+}

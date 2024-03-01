@@ -1,0 +1,32 @@
+{
+  "name": "lambdas",
+  "version": "1.0.0",
+  "scripts": {
+    "bundle": "esbuild dist/index.js --bundle --minify --sourcemap --platform=node --outfile=aws-build/index.js",
+    "build": "tsup src/* --format esm,cjs --dts",
+    "build:prod": "tsup src/* --format esm,cjs",
+    "build:aws": "npm run build:prod && npm run bundle",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.523.0",
+    "@react-email/render": "^0.0.12",
+    "@react-pdf/renderer": "^3.3.8",
+    "components": "*",
+    "db": "*",
+    "drizzle-orm": "^0.29.4",
+    "nodemailer": "^6.9.10",
+    "utils": "*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.134",
+    "@types/nodemailer": "^6.4.14",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "esbuild": "^0.20.1",
+    "tsup": "^8.0.2",
+    "types": "*",
+    "vite": "^5.1.4",
+    "vite-plugin-singlefile": "^2.0.0"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "types": ["bun-types"], // this is necessary
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/tests/*": ["__tests__/*"],
+      "@/public/*": ["public/*"]
+    },
+    "target": "ESNext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "lib/pdfviewer/index.js",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

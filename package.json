@@ -1,0 +1,16 @@
+{
+  "name": "donation-receipt-online",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "npm@9.6.3",
+  "scripts": {
+    "dev": "npm exec turbo dev",
+    "build": "npm exec turbo build",
+    "patch": "patch-package",
+    "patch:generate": "patch-package jose"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
+  }
+}

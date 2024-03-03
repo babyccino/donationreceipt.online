@@ -1,7 +1,6 @@
 import { createId } from "@paralleldrive/cuid2"
 import makeChecksum from "checksum"
 import { and, eq, gt, sql } from "drizzle-orm"
-import { ApiError } from "next/dist/server/api-utils"
 import { z } from "zod"
 
 import { refreshTokenIfNeeded } from "@/lib/auth/next-auth-helper-server"
@@ -10,9 +9,10 @@ import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
 import { accounts, campaigns, db, receipts } from "db"
-import { EmailWorkerDataType, sendReceipts } from "lambdas/src/index"
+import { EmailWorkerDataType, sendReceipts } from "lambdas"
 import { Donation } from "types"
 import { getThisYear } from "utils/dist/date"
+import { ApiError } from "utils/dist/error"
 import { parseRequestBody } from "utils/dist/request"
 
 const DAY_LENGTH_MS = 1000 * 60 * 60 * 24

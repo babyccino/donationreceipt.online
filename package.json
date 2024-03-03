@@ -2,7 +2,10 @@
   "name": "donation-receipt-online",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "packageManager": "npm@9.6.3",
   "scripts": {
     "dev": "npm exec turbo dev",
@@ -11,6 +14,8 @@
     "patch:generate": "patch-package jose"
   },
   "devDependencies": {
-    "patch-package": "^8.0.0"
+    "patch-package": "^8.0.0",
+    "turbo": "^1.12.5-canary.0",
+    "turborepo": "^0.0.1"
   }
 }

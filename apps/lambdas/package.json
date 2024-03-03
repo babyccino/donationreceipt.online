@@ -1,6 +1,12 @@
 {
   "name": "lambdas",
   "version": "1.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
     "bundle": "esbuild dist/index.js --bundle --minify --sourcemap --platform=node --outfile=aws-build/index.js",
     "build": "tsup src/* --format esm,cjs --dts",

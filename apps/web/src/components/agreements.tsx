@@ -1,10 +1,10 @@
-import { ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { Accordion } from "flowbite-react"
 const { Panel, Title, Content } = Accordion
 
 export const P = ({ children }: { children: ReactNode }) => (
-  <p className="mb-4 font-light text-gray-500 dark:text-gray-400 sm:text-lg">{children}</p>
+  <p className="mb-4 font-light text-gray-500 sm:text-lg dark:text-gray-400">{children}</p>
 )
 export const H1 = ({ children }: { children: ReactNode }) => (
   <h1 className="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">

@@ -35,21 +35,22 @@ module.exports = {
 
 // Injected content via Sentry wizard below
 
-// const { withSentryConfig } = require("@sentry/nextjs")
+const { withSentryConfig } = require("@sentry/nextjs")
 
-// module.exports = withSentryConfig(
-//   module.exports,
-//   {
-//     silent: true,
-//     org: "gusryanme",
-//     project: "donationreceipt-online",
-//   },
-//   {
-//     widenClientFileUpload: true,
-//     transpileClientSDK: true,
-//     tunnelRoute: "/monitoring",
-//     hideSourceMaps: true,
-//     disableLogger: true,
-//     automaticVercelMonitors: true,
-//   },
-// )
+module.exports = withSentryConfig(
+  module.exports,
+  {
+    silent: true,
+    org: "gusryanme",
+    project: "donationreceipt-online",
+  },
+  {
+    widenClientFileUpload: true,
+    transpileClientSDK: true,
+    tunnelRoute: "/monitoring",
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: true,
+    disableClientWebpackPlugin: true,
+  },
+)

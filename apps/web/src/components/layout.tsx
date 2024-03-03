@@ -22,9 +22,9 @@ import Link from "next/link"
 import { NextRouter, useRouter } from "next/router"
 import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 
-import { postJsonData } from "utils/dist/request"
 import { subscribe } from "@/lib/util/request"
 import { DataType } from "@/pages/api/switch-company"
+import { postJsonData } from "utils/dist/request"
 
 export type LayoutProps = {
   session: Session | null

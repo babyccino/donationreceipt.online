@@ -1,10 +1,11 @@
-import { LayoutProps } from "@/components/layout"
-import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { captureException } from "@sentry/nextjs"
+import { accounts, db, sessions } from "db"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
-import { and, eq, isNotNull } from "drizzle-orm"
-import { db, accounts, sessions } from "db"
+
+import { LayoutProps } from "@/components/layout"
+import { authOptions } from "@/pages/api/auth/[...nextauth]"
 
 export function interceptGetServerSidePropsErrors<T extends GetServerSideProps<any>>(
   getServerSideProps: T,

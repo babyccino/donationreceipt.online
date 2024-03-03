@@ -7,7 +7,8 @@ import { NextSeo } from "next-seo"
 import { AppProps } from "next/app"
 import Head from "next/head"
 
-import { ErrorBoundary, ErrorDisplay } from "@/components/error"
+import { ErrorBoundary } from "@/components/error"
+import { ErrorDisplay } from "@/components/error-display"
 import Layout, { LayoutProps } from "@/components/layout"
 import { config } from "@/lib/env"
 

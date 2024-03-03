@@ -1,1 +1,0 @@
-ALTER TABLE receipts ADD `email_status` text NOT NULL;

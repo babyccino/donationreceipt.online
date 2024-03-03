@@ -8,5 +8,5 @@ const vitalKeys = [
   "FIREBASE_CLIENT_EMAIL",
   "FIREBASE_PRIVATE_KEY",
 ] as const
-const nonVitalKeys = [] as const
+const nonVitalKeys = ["DEV_DB_LOCATION"] as const
 export const config = getConfig({ vitalKeys, nonVitalKeys })

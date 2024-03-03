@@ -29,7 +29,7 @@ rootkey.csv
 .react-email
 
 /drizzle
-/test.db*
+*.db*
 
 .dev.vars
 

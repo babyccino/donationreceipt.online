@@ -38,9 +38,9 @@ import {
   db,
   receipts,
   sessions,
-  storageBucket,
   users,
 } from "db"
+import { storageBucket } from "db/dist/firebase"
 import { formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
 import { postJsonData } from "utils/dist/request"

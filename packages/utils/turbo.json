@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "build:aws": {
+      "outputs": ["dist/**"]
+    },
     "build": {
       "outputs": ["dist/**"]
     },

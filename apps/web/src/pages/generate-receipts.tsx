@@ -28,7 +28,8 @@ import {
   ShowReceiptLoading,
 } from "components/dist/receipt/pdf-dumb"
 import { EmailProps } from "components/dist/receipt/types"
-import { DoneeInfo, accounts, campaigns, db, sessions, storageBucket } from "db"
+import { DoneeInfo, accounts, campaigns, db, sessions } from "db"
+import { storageBucket } from "db/dist/firebase"
 import { Donation } from "types"
 import { getDonationRange, getThisYear } from "utils/dist/date"
 import { downloadImageAndConvertToPng } from "utils/dist/db-helper"

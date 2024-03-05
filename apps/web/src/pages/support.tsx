@@ -98,6 +98,8 @@ export default function Support() {
   )
 }
 
+// TODO fix bug with support email being sent multiple times
+
 // --- server-side props ---
 
 export { defaultGetServerSideProps as getServerSideProps } from "@/lib/util/get-server-side-props"

@@ -9,11 +9,14 @@ import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
 import { accounts, campaigns, db, receipts } from "db"
+import { storageBucket } from "db/dist/firebase"
 import { EmailWorkerDataType, sendReceipts } from "lambdas"
 import { Donation } from "types"
 import { getThisYear } from "utils/dist/date"
 import { ApiError } from "utils/dist/error"
 import { parseRequestBody } from "utils/dist/request"
+import { bufferToPngDataUrl, downloadImagesForDonee } from "utils/dist/db-helper"
+import { dataUrlToBase64 } from "utils/dist/image-helper"
 
 const DAY_LENGTH_MS = 1000 * 60 * 60 * 24
 
@@ -122,6 +125,18 @@ const handler: AuthorisedHandler = async (req, res, session) => {
 
   const campaignId = createId()
   const ops = [
+    (async () => {
+      const { signature, smallLogo } = await downloadImagesForDonee(doneeInfo, storageBucket)
+      const signatureBuffer = Buffer.from(dataUrlToBase64(signature), "base64")
+      const smallLogoBuffer = Buffer.from(dataUrlToBase64(smallLogo), "base64")
+      const [signaturePng, smallLogoPng] = await Promise.all([
+        bufferToPngDataUrl(signatureBuffer),
+        bufferToPngDataUrl(smallLogoBuffer),
+      ])
+      doneeInfo.signature = signaturePng
+      doneeInfo.smallLogo = smallLogoPng
+      return doneeInfo
+    })(),
     db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(receipts)
@@ -145,26 +160,25 @@ const handler: AuthorisedHandler = async (req, res, session) => {
       }),
     ),
   ] as const
-  const [counterRows] = await Promise.all(ops)
+  const [doneeInfoWithImages, counterRows] = await Promise.all(ops)
 
   const counterStart = (counterRows[0]?.count ?? 0) + 1
   const thisYear = getThisYear()
   const counter = thisYear * 100000 + counterStart
 
   const reqBody: EmailWorkerDataType = {
-    email: userEmail,
     emailBody,
     campaignId,
-    doneeInfo,
+    doneeInfo: doneeInfoWithImages,
     userData,
     donations: relevantDonations,
     counter,
   }
 
-  if (config.nodeEnv === "test") {
-    await sendReceipts(reqBody)
-    return res.status(200).json({ campaignId })
-  }
+  // if (config.nodeEnv === "test" || config.sendEmailsInternal === "true") {
+  //   await sendReceipts(reqBody)
+  //   return res.status(200).json({ campaignId })
+  // }
 
   const emailWorkerTask = fetch(config.emailWorkerUrl, {
     body: JSON.stringify(reqBody),
@@ -172,9 +186,11 @@ const handler: AuthorisedHandler = async (req, res, session) => {
     headers: { "x-api-key": config.emailWorkerApiKey, "Content-Type": "application/json" },
   })
   const awaitEmailTask = req.headers["x-test-wait-for-email-worker"] === "true"
-  if (awaitEmailTask) {
+  if (true) {
     const workerTaskRes = await emailWorkerTask
-    if (!workerTaskRes.ok)
+    const json = await workerTaskRes.json()
+    console.log("workerTaskRes:", json)
+    if (!workerTaskRes.ok || json?.statusCode === "500" || json?.statusCode === "400")
       return res.status(workerTaskRes.status).json((await emailWorkerTask).json())
   }
 

@@ -42,7 +42,8 @@ const getPillColor = (status: EmailStatus) => {
 
 export default function Campaign({ recipients, refresh }: Props) {
   const router = useRouter()
-  if (refresh) {
+  // TODO: remove this when we have a better way to refresh the data
+  if (false) {
     setTimeout(() => {
       router.replace(router.asPath)
     }, 2500)
@@ -161,15 +162,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
       companies: accountList,
       session,
       selectedAccountId: session.accountId,
-      recipients: [
-        ...recipients,
-        { email: "test@test.com", emailStatus: "delivery_delayed" },
-        { email: "test@test.com", emailStatus: "delivered" },
-        { email: "test@test.com", emailStatus: "opened" },
-        { email: "test@test.com", emailStatus: "clicked" },
-        { email: "test@test.com", emailStatus: "bounced" },
-        { email: "test@test.com", emailStatus: "complained" },
-      ],
+      recipients,
       refresh: recipients.some(
         r =>
           r.emailStatus === "delivery_delayed" ||

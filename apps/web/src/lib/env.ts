@@ -49,6 +49,7 @@ const nonVitalKeys = [
   "PRODUCTION_URL",
 
   "TEST_EMAIL",
+  "SEND_EMAILS_INTERNAL",
 
   "NODE_ENV",
 ] as const

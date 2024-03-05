@@ -1,20 +1,28 @@
 import * as aws from "@aws-sdk/client-ses"
 import { render } from "@react-email/render"
 import { renderToBuffer } from "@react-pdf/renderer"
+import { AWSLambda } from "@sentry/serverless"
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 
 import { WithBody } from "components/dist/receipt/email"
 import { ReceiptPdfDocument } from "components/dist/receipt/pdf"
-import { db, receipts, storageBucket } from "db"
-import { getDonationRange, getThisYear } from "utils/dist/date"
-import { bufferToPngDataUrl, downloadImageAsDataUrl } from "utils/dist/db-helper"
-import { ApiError } from "utils/dist/error"
-import { dataUrlToBase64 } from "utils/dist/image-helper"
-import { parseRequestBody } from "utils/dist/request"
+import { db, receipts } from "db"
 import { Donation } from "types"
+import { getDonationRange, getThisYear } from "utils/dist/date"
+import { ApiError } from "utils/dist/error"
+import { parseRequestBody } from "utils/dist/request"
+import { config } from "./env"
+
+AWSLambda.init({
+  dsn: "https://a7eee9df5205f682427e4adbe29637ea@o4506814407966720.ingest.sentry.io/4506814412947456",
+
+  // We recommend adjusting this value in production, or using tracesSampler
+  // for finer control
+  tracesSampleRate: 1.0,
+})
 
 export const templateDonorName = "FULL_NAME"
 const formatEmailBody = (str: string, donorName: string) =>
@@ -38,7 +46,6 @@ const getFileNameFromImagePath = (str: string) => str.split("/")[1]
 export const parser = z.object({
   emailBody: z.string(),
   campaignId: z.string(),
-  email: z.string(),
   doneeInfo: z.object({
     companyName: z.string(),
     signature: z.string(),
@@ -69,51 +76,18 @@ export const parser = z.object({
 export type EmailWorkerDataType = z.input<typeof parser>
 
 export async function sendReceipts(props: EmailWorkerDataType) {
-  const { emailBody, email: userEmail, campaignId, doneeInfo, userData, donations, counter } = props
-
-  const [[signatureWebpDataUrl, signaturePngDataUrl], [logoWebpDataUrl, logoPngDataUrl]] =
-    await Promise.all([
-      (async () => {
-        const signatureWebpDataUrl = await downloadImageAsDataUrl(
-          storageBucket,
-          doneeInfo.signature,
-        )
-        const signaturePngDataUrl = await bufferToPngDataUrl(
-          Buffer.from(dataUrlToBase64(signatureWebpDataUrl), "base64"),
-        )
-        return [signatureWebpDataUrl, signaturePngDataUrl]
-      })(),
-      (async () => {
-        const logoWebpDataUrl = await downloadImageAsDataUrl(storageBucket, doneeInfo.smallLogo)
-        const logoPngDataUrl = await bufferToPngDataUrl(
-          Buffer.from(dataUrlToBase64(logoWebpDataUrl), "base64"),
-        )
-        return [logoWebpDataUrl, logoPngDataUrl]
-      })(),
-    ])
-
-  const doneeWithPngDataUrls: typeof doneeInfo = {
-    ...doneeInfo,
-    signature: signaturePngDataUrl,
-    smallLogo: logoPngDataUrl,
-  }
-
-  const doneeWithWebpDataUrls: typeof doneeInfo = {
-    ...doneeInfo,
-    signature: signatureWebpDataUrl,
-    smallLogo: logoWebpDataUrl,
-  }
+  const { emailBody, campaignId, doneeInfo, userData, donations, counter } = props
 
   const signatureCid = "signature"
   const signatureAttachment = {
     filename: getFileNameFromImagePath(doneeInfo.signature as string),
-    path: doneeWithWebpDataUrls.signature,
+    path: doneeInfo.signature,
     cid: signatureCid,
   }
   const logoCid = "logo"
   const logoAttachment = {
     filename: getFileNameFromImagePath(doneeInfo.smallLogo as string),
-    path: doneeWithWebpDataUrls.smallLogo,
+    path: doneeInfo.smallLogo,
     cid: logoCid,
   }
   const doneeWithCidImages = {
@@ -138,11 +112,12 @@ export async function sendReceipts(props: EmailWorkerDataType) {
       currentDate: new Date(),
       donation: entry,
       donationDate: donationRange,
-      donee: doneeWithPngDataUrls,
+      donee: doneeInfo,
       receiptNo: newCounter,
     }
 
     const body = formatEmailBody(emailBody, entry.name)
+    console.log("rendering receipt for", entry.name, "...")
     const receiptBuffer = await renderToBuffer(ReceiptPdfDocument(props))
 
     const html = render(
@@ -153,6 +128,7 @@ export async function sendReceipts(props: EmailWorkerDataType) {
       }),
     )
 
+    // if using sendingRate option
     // transporter.once("idle", () =>
     //   sendEmail(entry, receiptBuffer, html).catch(_ => receiptSentFailures.push(entry)),
     // )
@@ -165,8 +141,9 @@ export async function sendReceipts(props: EmailWorkerDataType) {
   }
 
   async function sendEmail(entry: DonationWithEmail, receiptBuffer: Buffer, html: string) {
-    const { messageId, rejected } = await transporter.sendMail({
-      from: { address: userEmail, name: companyName },
+    console.log("sending email to", entry.email, "...")
+    const awsRes = await transporter.sendMail({
+      from: { address: `noreply@${config.domain}`, name: companyName },
       to: entry.email,
       subject: `Your ${getThisYear()} ${companyName} Donation Receipt`,
       attachments: [
@@ -181,6 +158,12 @@ export async function sendReceipts(props: EmailWorkerDataType) {
       html,
     })
 
+    const { messageId, rejected } = awsRes
+
+    console.log("email sent to", entry.email, "with messageId", messageId, "rejected:", rejected)
+    delete (awsRes as any).raw
+    console.log("whole response:", awsRes)
+    console.log("writing to db...")
     const dbInsert = db
       .update(receipts)
       .set({
@@ -197,43 +180,65 @@ export async function sendReceipts(props: EmailWorkerDataType) {
   // wait for all tasks to be completed
   await Promise.all(
     donations.map(entry =>
-      sendReceipt(entry).catch(_ => receiptCreationFailures.push(entry.donorId)),
+      sendReceipt(entry).catch(err => {
+        console.error("error sending receipt: ", err)
+        console.error("entry: ", entry)
+        receiptCreationFailures.push(entry.donorId)
+      }),
     ),
   )
 
-  if (receiptSentFailures.length > 0) {
-    const receiptsToSend = receiptSentFailures.slice(0, Infinity)
-    for (let i = 0; i < MAX_RESEND_RETRIES; ++i) {
-      await Promise.all(
-        receiptsToSend.map(entry =>
-          sendReceipt(entry).catch(_ => receiptCreationFailures.push(entry.donorId)),
-        ),
-      )
-      if (receiptSentFailures.length === 0) break
-    }
-  }
+  // if (receiptSentFailures.length > 0) {
+  //   const receiptsToSend = receiptSentFailures.slice(0, Infinity)
+  //   for (let i = 0; i < MAX_RESEND_RETRIES; ++i) {
+  //     await Promise.all(
+  //       receiptsToSend.map(entry =>
+  //         sendReceipt(entry).catch(_ => receiptCreationFailures.push(entry.donorId)),
+  //       ),
+  //     )
+  //     if (receiptSentFailures.length === 0) break
+  //   }
+  // }
 
-  for (const entry of receiptSentFailures) {
+  if (receiptSentFailures.length > 0) {
     const dbInsert = db
       .update(receipts)
       .set({ emailStatus: "not_sent" })
-      .where(and(eq(receipts.campaignId, campaignId), eq(receipts.donorId, entry.donorId)))
+      .where(
+        and(
+          eq(receipts.campaignId, campaignId),
+          inArray(
+            receipts.donorId,
+            receiptSentFailures.map(d => d.donorId),
+          ),
+        ),
+      )
       .run()
+    dbInserts.push(dbInsert)
   }
 
   await Promise.all(dbInserts)
+  // if using sendingRate option
   // await new Promise<void>(res => transporter.once("idle", () => res()))
 }
 
 type DonationWithEmail = Donation & { email: string }
 
-export const lambdaHandler = async (
-  event: APIGatewayProxyEvent,
-): Promise<APIGatewayProxyResult> => {
-  if (!event.body) return { statusCode: 400, body: JSON.stringify({ message: "no body" }) }
+async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  console.log("running in env:", process.env.NODE_ENV)
+  if (!event.body) {
+    console.error("returned 400: no body")
+    return { statusCode: 400, body: JSON.stringify({ message: "no body" }) }
+  }
 
   try {
-    const body = parseRequestBody(parser, JSON.parse(event.body))
+    const rawBody = JSON.parse(event.body)
+    if (rawBody.ping) {
+      console.log("pinged")
+      return { statusCode: 200, body: JSON.stringify({ pong: true }) }
+    }
+
+    const body = parseRequestBody(parser, rawBody)
     await sendReceipts(body)
 
     return {
@@ -247,6 +252,7 @@ export const lambdaHandler = async (
         statusCode: err.statusCode,
         body: JSON.stringify({
           message: err.message,
+          stack: err.stack,
         }),
       }
     }
@@ -254,7 +260,9 @@ export const lambdaHandler = async (
       statusCode: 500,
       body: JSON.stringify({
         message: err.message ?? "an unexpected server error occurred",
+        stack: err.stack,
       }),
     }
   }
 }
+export const handler = AWSLambda.wrapHandler(_handler)

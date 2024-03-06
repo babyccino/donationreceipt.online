@@ -167,7 +167,7 @@ export async function sendReceipts(props: EmailWorkerDataType) {
     const dbInsert = db
       .update(receipts)
       .set({
-        emailStatus: rejected ? "sent" : "bounced",
+        emailStatus: rejected ? "bounced" : "sent",
         emailId: messageId,
       })
       .where(and(eq(receipts.campaignId, campaignId), eq(receipts.donorId, entry.donorId)))
@@ -224,7 +224,7 @@ export async function sendReceipts(props: EmailWorkerDataType) {
 
 type DonationWithEmail = Donation & { email: string }
 
-async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+export async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   console.log("running in env:", process.env.NODE_ENV)
   if (!event.body) {
     console.error("returned 400: no body")
@@ -232,7 +232,12 @@ async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRes
   }
 
   try {
-    const rawBody = JSON.parse(event.body)
+    if (typeof event.body !== "object" || typeof event.body !== "string")
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "Body must be an object or string" }),
+      }
+    const rawBody = typeof event.body === "string" ? JSON.parse(event.body) : event.body
     if (rawBody.ping) {
       console.log("pinged")
       return { statusCode: 200, body: JSON.stringify({ pong: true }) }
@@ -247,20 +252,11 @@ async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRes
     }
   } catch (err: any) {
     console.error(err)
-    if (err instanceof ApiError) {
-      return {
-        statusCode: err.statusCode,
-        body: JSON.stringify({
-          message: err.message,
-          stack: err.stack,
-        }),
-      }
-    }
     return {
-      statusCode: 500,
+      statusCode: err?.statusCode ?? 500,
       body: JSON.stringify({
-        message: err.message ?? "an unexpected server error occurred",
-        stack: err.stack,
+        message: err?.message ?? "Internal Server Error",
+        stack: err?.stack ?? "No stack trace available",
       }),
     }
   }

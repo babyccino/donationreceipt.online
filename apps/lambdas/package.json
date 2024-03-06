@@ -6,12 +6,13 @@
   "types": "./dist/index.d.ts",
   "files": ["dist/**"],
   "scripts": {
-    "bundle": "esbuild dist/index.js --bundle --minify --sourcemap --platform=node --outfile=aws-build/index.js --tree-shaking=true",
     "build": "tsup src/* --format esm,cjs --dts",
-    "build:prod": "tsup src/* --format esm,cjs",
     "dev": "tsup src/* --format esm,cjs --dts --watch",
     "build:aws": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --tree-shaking=true",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf ./dist"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.523.0",

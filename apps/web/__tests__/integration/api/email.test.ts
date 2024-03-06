@@ -4,6 +4,7 @@ import makeChecksum from "checksum"
 import { eq, sql } from "drizzle-orm"
 import { NextApiRequest, NextApiResponse } from "next"
 
+import { storageBucket } from "db/dist/firebase"
 import { db, campaigns, doneeInfos, receipts, subscriptions, userDatas } from "db"
 import { getDonations } from "@/lib/qbo-api"
 import { wait } from "utils/dist/etc"
@@ -24,7 +25,12 @@ describe("email", () => {
       (async () => {
         const img = Bun.file("__tests__/test-files/test.webp")
         const buf = await img.arrayBuffer()
-        const testImage = await uploadWebpImage(Buffer.from(buf), "test/test.webp", true)
+        const testImage = await uploadWebpImage(
+          storageBucket,
+          Buffer.from(buf),
+          "test/test.webp",
+          true,
+        )
         const doneeInfoId = createId()
         const [doneeInfo] = await db
           .insert(doneeInfos)

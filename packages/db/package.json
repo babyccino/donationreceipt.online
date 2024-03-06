@@ -7,9 +7,10 @@
   "types": "./dist/index.d.ts",
   "files": ["dist/**"],
   "scripts": {
-    "build:aws": "tsup src/* --format cjs",
     "build": "tsup src/index.ts --format esm,cjs --dts",
-    "clean": "rm -rf dist",
+    "build:aws": "tsup src/* --format cjs",
+    "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "clean": "rm -rf ./dist",
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",

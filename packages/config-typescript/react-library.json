@@ -6,7 +6,6 @@
     "lib": ["ES2015"],
     "module": "ESNext",
     "target": "es2020",
-    "jsx": "react-jsx",
-    "noEmit": true
+    "jsx": "react-jsx"
   }
 }

@@ -1,24 +1,24 @@
-import { test, describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 
+import { config } from "@/lib/env"
 import {
-  combineCustomerQueries,
-  getAddressString,
-  createDonationsFromSalesReport,
   addBillingAddressesToDonations,
+  combineCustomerQueries,
+  createDonationsFromSalesReport,
   formatItemQuery,
-  parseCompanyInfo,
-  makeSalesReportUrl,
+  getAddressString,
   makeQueryUrl,
+  makeSalesReportUrl,
+  parseCompanyInfo,
 } from "@/lib/qbo-api"
 import {
-  CustomerSalesReport,
   CompanyInfoQueryResult,
   CustomerQueryResult,
-  DonationWithoutAddress,
+  CustomerSalesReport,
   ItemQueryResponse,
 } from "@/types/qbo-api"
+import { DonationWithoutAddress } from "types"
 import { DeepPartial } from "utils/dist/etc"
-import { config } from "@/lib/env"
 
 const Header = Object.freeze({
   Time: "2023-03-23T14:08:37.242Z",

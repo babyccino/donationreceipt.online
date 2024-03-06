@@ -4,14 +4,17 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
+    "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "prettier": "prettier --write .",
     "email:dev": "email dev --port 3001 --dir ./src/emails",
     "stripe:forward": "stripe listen --forward-to localhost:3000/api/stripe/webhooks",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "bun test __tests__/unit/*",
-    "test:integration": "bun test __tests__/integration/* --preload ./__tests__/integration/setup.ts"
+    "test:integration": "bun test __tests__/integration/* --preload ./__tests__/integration/setup.ts",
+    "clean": "rm -rf ./.next"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.521.0",

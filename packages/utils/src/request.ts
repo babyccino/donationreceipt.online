@@ -32,6 +32,7 @@ export async function fetchJsonData<T = any>(url: string, accessToken?: string):
   }
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   const response = await fetch(url, {
+    method: "GET",
     headers,
   })
 

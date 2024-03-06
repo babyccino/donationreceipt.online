@@ -3,7 +3,9 @@ import { test, describe, expect, mock, afterEach } from "bun:test"
 import { fetchJsonData, postJsonData } from "@/request"
 
 function mockGlobalFetch(arg: { ok: boolean; json: () => any; headers?: { get: () => string } }) {
-  const mockFetch = mock((url: string, headers: any, body: string) => arg)
+  const mockFetch = mock(
+    (url: string, args: { headers: Record<string, string>; body?: string; method: string }) => arg,
+  )
   global.fetch = mockFetch as any
   return mockFetch
 }
@@ -76,6 +78,7 @@ describe("fetchJsonData", () => {
     expect(mockFetch.mock.calls[0]).toEqual([
       url,
       {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: "application/json",
@@ -101,6 +104,7 @@ describe("fetchJsonData", () => {
     expect(mockFetch.mock.calls[0]).toEqual([
       url,
       {
+        method: "GET",
         headers: {
           Accept: "application/json",
         },

@@ -12,7 +12,6 @@ import { ReceiptPdfDocument } from "components/dist/receipt/pdf"
 import { db, receipts } from "db"
 import { Donation } from "types"
 import { getDonationRange, getThisYear } from "utils/dist/date"
-import { ApiError } from "utils/dist/error"
 import { parseRequestBody } from "utils/dist/request"
 import { config } from "./env"
 

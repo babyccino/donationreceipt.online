@@ -7,9 +7,10 @@
   "types": "./dist/index.d.ts",
   "files": ["dist/**"],
   "scripts": {
-    "build:aws": "tsup src/* --format cjs react",
     "build": "tsup src/* --format esm,cjs --dts --external react",
-    "clean": "rm -rf dist",
+    "build:aws": "tsup src/* --format cjs react",
+    "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "clean": "rm -rf ./dist",
     "dev": "tsup src/* --format esm,cjs --watch --dts --external react",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"

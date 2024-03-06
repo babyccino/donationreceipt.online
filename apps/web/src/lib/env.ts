@@ -50,6 +50,7 @@ const nonVitalKeys = [
 
   "TEST_EMAIL",
   "SEND_EMAILS_INTERNAL",
+  "LOCAL_LAMBDA",
 
   "NODE_ENV",
 ] as const

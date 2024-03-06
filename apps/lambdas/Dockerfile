@@ -37,7 +37,10 @@ FROM base AS runner
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# Don't run production as root
-COPY --from=installer /usr/app .
+COPY --from=installer /usr/app/apps/lambdas/dist .
+COPY --from=installer /usr/app/packages/db/test.db .
 
-CMD ["apps/lambdas/dist/index.handler"]
+# dynamic depenency esbuild doesn't bundle
+RUN npm i @libsql/client
+
+CMD ["index.handler"]

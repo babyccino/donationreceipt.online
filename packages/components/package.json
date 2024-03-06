@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"
   },
-  "dependencies": {
+  "devDependencies": {
     "@aws-sdk/client-ses": "^3.523.0",
     "@heroicons/react": "^2.1.1",
     "@react-email/render": "^0.0.12",
@@ -27,7 +27,7 @@
     "utils": "*",
     "zod": "^3.22.4"
   },
-  "devDependencies": {
+  "dependencies": {
     "@react-email/components": "^0.0.15",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",

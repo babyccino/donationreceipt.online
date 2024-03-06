@@ -10,8 +10,7 @@
     "build": "tsup src/* --format esm,cjs --dts",
     "build:prod": "tsup src/* --format esm,cjs",
     "dev": "tsup src/* --format esm,cjs --dts --watch",
-    "build:aws": "tsup src/* --format cjs",
-    "build:aws2": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --tree-shaking=true",
+    "build:aws": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --tree-shaking=true",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

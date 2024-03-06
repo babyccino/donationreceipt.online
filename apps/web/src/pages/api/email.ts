@@ -175,13 +175,17 @@ const handler: AuthorisedHandler = async (req, res, session) => {
     counter,
   }
 
-  // if (config.nodeEnv === "test" || config.sendEmailsInternal === "true") {
-  //   await sendReceipts(reqBody)
-  //   return res.status(200).json({ campaignId })
-  // }
+  console.log({ reqBody })
 
+  if (config.nodeEnv === "test" || config.sendEmailsInternal === "true") {
+    await sendReceipts(reqBody)
+    return res.status(200).json({ campaignId })
+  }
+
+  const body =
+    config.localLambda === "true" ? JSON.stringify({ body: JSON.stringify(reqBody) }) : reqBody
   const emailWorkerTask = fetch(config.emailWorkerUrl, {
-    body: JSON.stringify(reqBody),
+    body,
     method: "POST",
     headers: { "x-api-key": config.emailWorkerApiKey, "Content-Type": "application/json" },
   })
@@ -190,8 +194,8 @@ const handler: AuthorisedHandler = async (req, res, session) => {
     const workerTaskRes = await emailWorkerTask
     const json = await workerTaskRes.json()
     console.log("workerTaskRes:", json)
-    if (!workerTaskRes.ok || json?.statusCode === "500" || json?.statusCode === "400")
-      return res.status(workerTaskRes.status).json((await emailWorkerTask).json())
+    if (!workerTaskRes.ok || json.statusCode === "500" || json.statusCode === "400")
+      return res.status(workerTaskRes.status).json(json)
   }
 
   res.status(200).json({ campaignId })

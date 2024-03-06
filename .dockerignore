@@ -5,6 +5,7 @@
 **/prettier.config.js
 **/Dockerfile
 **/dist
+**/*.env
 
 .git
 

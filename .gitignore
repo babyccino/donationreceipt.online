@@ -28,7 +28,7 @@ rootkey.csv
 
 .react-email
 
-*.db*
+**/*.db*
 
 .dev.vars
 

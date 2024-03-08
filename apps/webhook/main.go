@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,11 +26,10 @@ func run() error {
 		return errors.New("please provide an address to listen on as the first argument")
 	}
 
-	l, err := net.Listen("tcp", os.Args[1])
-	if err != nil {
-		return err
-	}
-	log.Printf("listening on http://%v", l.Addr())
+	// listener, err := net.Listen("tcp", os.Args[1])
+	// if err != nil {
+	// 	return err
+	// }
 
 	chatServer := newBroadcastServer()
 	httpServer := &http.Server{
@@ -40,8 +38,11 @@ func run() error {
 		WriteTimeout: time.Second * 10,
 	}
 	errc := make(chan error, 1)
+	addr := os.Args[1]
+	httpServer.Addr = addr
 	go func() {
-		errc <- httpServer.Serve(l)
+		log.Printf("listening on http://%v", addr)
+		errc <- httpServer.ListenAndServe()
 	}()
 
 	sigs := make(chan os.Signal, 1)

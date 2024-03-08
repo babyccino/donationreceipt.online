@@ -231,11 +231,13 @@ export async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayP
   }
 
   try {
-    if (typeof event.body !== "object" || typeof event.body !== "string")
+    if (typeof event.body !== "object" && typeof event.body !== "string") {
+      console.error("event.body: ", event.body)
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "Body must be an object or string" }),
       }
+    }
     const rawBody = typeof event.body === "string" ? JSON.parse(event.body) : event.body
     if (rawBody.ping) {
       console.log("pinged")

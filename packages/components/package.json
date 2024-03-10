@@ -7,15 +7,15 @@
   "types": "./dist/index.d.ts",
   "files": ["dist/**"],
   "scripts": {
-    "build": "tsup src/* --format esm,cjs --dts --external react",
     "build:aws": "tsup src/* --format cjs react",
     "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "clean": "rm -rf ./dist",
+    "build": "tsup src/* --format esm,cjs --dts --external react",
     "dev": "tsup src/* --format esm,cjs --watch --dts --external react",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"
   },
-  "devDependencies": {
+  "dependencies": {
     "@aws-sdk/client-ses": "^3.523.0",
     "@heroicons/react": "^2.1.1",
     "@react-email/render": "^0.0.12",
@@ -26,10 +26,10 @@
     "next": "^14.1.1",
     "nodemailer": "^6.9.10",
     "utils": "*",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "@react-email/components": "^0.0.15"
   },
-  "dependencies": {
-    "@react-email/components": "^0.0.15",
+  "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/aws-lambda": "^8.10.134",

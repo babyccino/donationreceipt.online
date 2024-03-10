@@ -94,10 +94,13 @@ type broadcastServer struct {
 
 	subscriberGroupLock sync.Mutex
 	subscriberGroupMap  map[string]*subscriberGroup
+
+	snsArn string
 }
 
-func newBroadcastServer() *broadcastServer {
+func newBroadcastServer(snsArn string) *broadcastServer {
 	server := &broadcastServer{
+		snsArn:             snsArn,
 		logf:               log.Printf,
 		subscriberGroupMap: make(map[string]*subscriberGroup),
 	}
@@ -165,13 +168,20 @@ func (server *broadcastServer) pingHandler(writer http.ResponseWriter, req *http
 
 // publishHandler reads the request body with a limit of 8192 bytes and then publishes
 // the received message.
-func (server *broadcastServer) publishHandler(writer http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+func (server *broadcastServer) publishHandler(writer http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
 		http.Error(writer, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	body := http.MaxBytesReader(writer, r.Body, 8192)
-	_, err := io.ReadAll(body)
+
+	if server.snsArn != server.snsArn {
+		fmt.Printf("invalid topic arn %s", server.snsArn)
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	body := http.MaxBytesReader(writer, req.Body, 8192)
+	msg, err := io.ReadAll(body)
 	if err != nil {
 		http.Error(writer, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
 		return

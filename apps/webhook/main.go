@@ -26,12 +26,12 @@ func run() error {
 		return errors.New("please provide an address to listen on as the first argument")
 	}
 
-	// listener, err := net.Listen("tcp", os.Args[1])
-	// if err != nil {
-	// 	return err
-	// }
+	snsArn, exists := os.LookupEnv("SNS_ARN")
+	if !exists {
+		return errors.New("SNS_ARN environment variable not set")
+	}
 
-	chatServer := newBroadcastServer()
+	chatServer := newBroadcastServer(snsArn)
 	httpServer := &http.Server{
 		Handler:      chatServer,
 		ReadTimeout:  time.Second * 10,

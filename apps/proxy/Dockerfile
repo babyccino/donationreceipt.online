@@ -1,4 +1,3 @@
 FROM amd64/nginx:1.25
-RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /etc/nginx/ssl

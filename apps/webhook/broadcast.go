@@ -284,7 +284,9 @@ func (server *broadcastServer) subscribe(ctx context.Context, writer http.Respon
 		return err
 	}
 
-	wsConn2, err := websocket.Accept(writer, req, nil)
+	wsConn2, err := websocket.Accept(writer, req, &websocket.AcceptOptions{
+		OriginPatterns: []string{"*.donationreceipt.online", "donationreceipt.online"},
+	})
 	if err != nil {
 		return err
 	}

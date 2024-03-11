@@ -73,7 +73,23 @@ export default function Campaign({ recipients: initialRecipients, refresh, campa
     }
     webhookRef.current = ws
     return () => ws.close()
-  }, [])
+  }, [refresh, campaignId])
+
+  // if all the emails have been resolved (either sent, bounced, etc. doesn't matter), close the websocket
+  useEffect(() => {
+    if (refresh) return
+    if (!webhookRef.current) return
+    if (
+      recipients.some(
+        r =>
+          r.emailStatus === "delivery_delayed" ||
+          r.emailStatus === "sent" ||
+          r.emailStatus === "not_sent",
+      )
+    )
+      return
+    webhookRef.current.close()
+  }, [recipients, refresh])
 
   return (
     <div className="sm:py-8">

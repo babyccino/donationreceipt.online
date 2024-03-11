@@ -2,11 +2,11 @@ FROM amd64/golang:1.22 AS builder
 WORKDIR /app
 COPY go.* ./
 RUN go mod download
-COPY *.go ./
+COPY . .
 RUN go build -o /webhook
 
 FROM golang:1.22 AS runner
-WORKDIR /app/
+WORKDIR /app
 COPY --from=builder /webhook /webhook
 EXPOSE 8080
 

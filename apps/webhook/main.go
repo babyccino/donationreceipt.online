@@ -8,6 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"webhook/broadcastserver"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -26,17 +30,32 @@ func run() error {
 		return errors.New("please provide an address to listen on as the first argument")
 	}
 
-	snsArn, exists := os.LookupEnv("SNS_ARN")
-	if !exists {
-		return errors.New("SNS_ARN environment variable not set")
+	dbUrl, dbUrlExists := os.LookupEnv("LIB_SQL_DB_URL")
+	snsArn, snsArnExists := os.LookupEnv("SNS_ARN")
+	if !dbUrlExists || !snsArnExists {
+		err := godotenv.Load("./.env")
+		if err != nil {
+			log.Fatal("env variables not found and .env file not found")
+		}
+
+		dbUrl, dbUrlExists = os.LookupEnv("LIB_SQL_DB_URL")
+		snsArn, snsArnExists = os.LookupEnv("SNS_ARN")
+		if !dbUrlExists || !snsArnExists {
+			return errors.New("env variables not found in .env file")
+		}
 	}
 
-	chatServer := newBroadcastServer(snsArn)
+	chatServer, err := broadcastserver.NewBroadcastServer(snsArn, dbUrl)
+	if err != nil {
+		return err
+	}
+
 	httpServer := &http.Server{
 		Handler:      chatServer,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
+	httpServer.RegisterOnShutdown(chatServer.OnShutdown)
 	errc := make(chan error, 1)
 	addr := os.Args[1]
 	httpServer.Addr = addr

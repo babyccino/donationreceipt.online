@@ -1,5 +1,6 @@
 services:
   reverse-proxy:
+    image: babyccino/dono-reverse-proxy:latest
     platform: linux/amd64
     restart: on-failure
     # network_mode: "host"
@@ -16,6 +17,8 @@ services:
       - webhook
 
   webhook:
+    image: babyccino/dono-webhook:latest
+    env_file: ./.env
     platform: linux/amd64
     restart: on-failure
     # network_mode: "host"

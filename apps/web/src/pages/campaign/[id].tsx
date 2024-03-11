@@ -2,6 +2,8 @@ import { and, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
 import { ApiError } from "next/dist/server/api-utils"
+import { useRouter } from "next/router"
+import { useEffect, useRef, useState } from "react"
 
 import { LayoutProps } from "@/components/layout"
 import {
@@ -9,14 +11,13 @@ import {
   refreshTokenIfNeeded,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
-import { db } from "db"
+import { config } from "@/lib/env"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { accounts, receipts, sessions, EmailStatus } from "db"
-import { useRouter } from "next/router"
+import { EmailStatus, accounts, db, receipts, sessions } from "db"
 
-type RecipientStatus = { email: string; emailStatus: EmailStatus }
-type Props = { recipients: RecipientStatus[]; refresh: boolean } & LayoutProps
+type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
+type Props = { recipients: RecipientStatus[]; refresh: boolean; campaignId: string } & LayoutProps
 
 const getPillColor = (status: EmailStatus) => {
   switch (status) {
@@ -40,14 +41,39 @@ const getPillColor = (status: EmailStatus) => {
   }
 }
 
-export default function Campaign({ recipients, refresh }: Props) {
+const webhookUrl =
+  config.emailWebhookUrl.at(-1) === "/" ? config.emailWebhookUrl : `${config.emailWebhookUrl}/`
+
+export default function Campaign({ recipients: initialRecipients, refresh, campaignId }: Props) {
   const router = useRouter()
   // TODO: remove this when we have a better way to refresh the data
-  if (false) {
-    setTimeout(() => {
-      router.replace(router.asPath)
-    }, 2500)
-  }
+  const [recipients, setRecipients] = useState(initialRecipients)
+  const webhookRef = useRef<WebSocket>()
+
+  useEffect(() => {
+    if (!refresh) return
+    const ws = new WebSocket(`${webhookUrl}${campaignId}`)
+    ws.onmessage = event => {
+      console.log("Received webhook event:", event.data)
+      const { donorId, emailStatus } = JSON.parse(event.data) as {
+        donorId: string
+        emailStatus: EmailStatus
+      }
+      if (!donorId || donorId.length === 0 || !emailStatus || emailStatus.length === 0) {
+        console.error("Invalid webhook data:", event.data)
+        return
+      }
+      setRecipients(prev => {
+        const index = prev.findIndex(r => r.donorId === donorId)
+        if (index === -1) return prev
+        const newRecipients = [...prev]
+        newRecipients[index].emailStatus = emailStatus
+        return newRecipients
+      })
+    }
+    webhookRef.current = ws
+    return () => ws.close()
+  }, [])
 
   return (
     <div className="sm:py-8">
@@ -129,7 +155,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     }) as Promise<{ companyName: string; id: string }[]>,
     db.query.receipts.findMany({
       where: eq(receipts.campaignId, id),
-      columns: { email: true, emailStatus: true },
+      columns: { email: true, emailStatus: true, donorId: true },
       orderBy: desc(receipts.email),
     }),
   ])
@@ -169,6 +195,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
           r.emailStatus === "sent" ||
           r.emailStatus === "not_sent",
       ),
+      campaignId: id,
     } satisfies Props,
   }
 }

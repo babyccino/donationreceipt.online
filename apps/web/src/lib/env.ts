@@ -33,6 +33,7 @@ const vitalKeys = [
   "SENTRY_AUTH_TOKEN",
 
   "DOMAIN",
+  "EMAIL_WEBHOOK_URL",
 ] as const
 const nonVitalKeys = [
   "FIREBASE_API_KEY",

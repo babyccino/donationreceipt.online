@@ -155,6 +155,11 @@ export async function sendReceipts(props: EmailWorkerDataType) {
         logoAttachment,
       ],
       html,
+      headers: {
+        "X-SES-CONFIGURATION-SET": config.snsArn,
+        "X-DATA-CAMPAIGN-ID": campaignId,
+        "X-DATA-DONOR-ID": entry.donorId,
+      },
     })
 
     const { messageId, rejected } = awsRes
@@ -224,7 +229,6 @@ export async function sendReceipts(props: EmailWorkerDataType) {
 type DonationWithEmail = Donation & { email: string }
 
 export async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  console.log("running in env:", process.env.NODE_ENV)
   if (!event.body) {
     console.error("returned 400: no body")
     return { statusCode: 400, body: JSON.stringify({ message: "no body" }) }
@@ -232,7 +236,7 @@ export async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayP
 
   try {
     if (typeof event.body !== "object" && typeof event.body !== "string") {
-      console.error("event.body: ", event.body)
+      console.error("event.body must be an object or a string:", event.body)
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "Body must be an object or string" }),
@@ -244,9 +248,13 @@ export async function _handler(event: APIGatewayProxyEvent): Promise<APIGatewayP
       return { statusCode: 200, body: JSON.stringify({ pong: true }) }
     }
 
+    console.time("in:")
+
     const body = parseRequestBody(parser, rawBody)
     await sendReceipts(body)
 
+    console.log(`sent ${body.donations.length} receipts`)
+    console.timeEnd("in:")
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true }),

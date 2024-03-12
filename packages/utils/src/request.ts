@@ -38,11 +38,15 @@ export async function fetchJsonData<T = any>(
   }
   if (config?.bearer) headers.Authorization = `Bearer ${config.bearer}`
   if (config?.body) headers["Content-Type"] = "application/json"
-  const response = await fetch(url, {
+  if (config?.method === "GET" && config?.body) {
+    console.warn("GET request made with body")
+  }
+  const fetchOptions = {
     method,
     headers,
     body: config ? config.body && JSON.stringify(config.body) : undefined,
-  })
+  }
+  const response = await fetch(url, fetchOptions)
 
   const responseContent = await getResponseContent(response)
   if (!response.ok) {

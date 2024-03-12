@@ -89,9 +89,9 @@ function EmailInput() {
         onChange={e => setEmailBody(e.currentTarget.value)}
         rows={10}
       />
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
         Use <code>{templateDonorName}</code> to reference your donor{"'"}s name
-      </p>
+      </div>
     </Fieldset>
   )
 }
@@ -131,7 +131,7 @@ const CampaignOverlap = ({ campaign }: { campaign: Campaign[] }) => (
       Your selection of donees and date range overlaps with previous campaigns
       <UpArrow className="h-5 w-5 shrink-0 group-open:rotate-180 group-open:text-gray-700 dark:group-open:text-gray-200" />
     </summary>
-    <p className="font-light">
+    <div className="font-light">
       <div className="mb-2">
         Please verify you are not receipting the same donations twice. The following campaigns have
         overlap with the current:
@@ -167,7 +167,7 @@ const CampaignOverlap = ({ campaign }: { campaign: Campaign[] }) => (
           </li>
         ))}
       </ul>
-    </p>
+    </div>
   </details>
 )
 
@@ -225,8 +225,10 @@ function SendEmails({
     }
     try {
       const res = await fetchJsonData("/api/email", {
+        method: "POST",
         body: data,
-        headers: { method: "POST", "x-test-wait-for-email-worker": "true" },
+        // TODO remove this header in prod as long requests will time out on vercel
+        headers: { "x-test-wait-for-email-worker": "true" },
       })
       if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
       setLoading(false)

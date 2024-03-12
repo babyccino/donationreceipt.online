@@ -10,7 +10,7 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; connect-src wss://*.donationreceipt.online data:; frame-src blob:; script-src 'self' http: https:; img-src 'self' storage.googleapis.com data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; object-src 'self' blob:;"
+          "value": "default-src 'self'; connect-src 'self' wss://*.donationreceipt.online data:; frame-src 'self' blob:; script-src 'self' http: https:; img-src 'self' storage.googleapis.com data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; object-src 'self' blob:;"
         }
       ]
     }

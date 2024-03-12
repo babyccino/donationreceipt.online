@@ -10,7 +10,6 @@ import { isUserSubscribed } from "@/lib/stripe"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
 import { accounts, campaigns, db, receipts } from "db"
 import { storageBucket } from "db/dist/firebase"
-import { EmailWorkerDataType, sendReceipts } from "lambdas"
 import { Donation } from "types"
 import { getThisYear } from "utils/dist/date"
 import { ApiError } from "utils/dist/error"
@@ -166,7 +165,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
   const thisYear = getThisYear()
   const counter = thisYear * 100000 + counterStart
 
-  const reqBody: EmailWorkerDataType = {
+  const reqBody = {
     emailBody,
     campaignId,
     doneeInfo: doneeInfoWithImages,
@@ -176,6 +175,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
   }
 
   if (config.nodeEnv === "test" || config.sendEmailsInternal === "true") {
+    const { sendReceipts } = await import("lambdas")
     await sendReceipts(reqBody)
     return res.status(200).json({ campaignId })
   }

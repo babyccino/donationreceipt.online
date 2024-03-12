@@ -25,7 +25,7 @@ import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 
 import { subscribe } from "@/lib/util/request"
 import { DataType } from "@/pages/api/switch-company"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 export type LayoutProps = {
   session: Session | null
@@ -211,7 +211,10 @@ const Companies = ({
         <li key={accountId}>
           <button
             onClick={async () => {
-              await postJsonData("/api/switch-company", { accountId } satisfies DataType)
+              await fetchJsonData("/api/switch-company", {
+                method: "POST",
+                body: { accountId } satisfies DataType,
+              })
               router.replace(router.asPath)
             }}
             className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"

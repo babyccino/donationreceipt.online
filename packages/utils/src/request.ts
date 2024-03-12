@@ -26,74 +26,29 @@ export async function getResponseContent(response: Response) {
   }
 }
 
-export async function fetchJsonData<T = any>(url: string, accessToken?: string): Promise<T> {
+type Method = "GET" | "POST" | "PUT" | "DELETE"
+export async function fetchJsonData<T = any>(
+  url: string,
+  config?: { method?: Method; bearer?: string; headers?: Record<string, string>; body?: any },
+): Promise<T> {
+  const method = config?.method ?? "GET"
   const headers: HeadersInit = {
     Accept: "application/json",
+    ...config?.headers,
   }
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+  if (config?.bearer) headers.Authorization = `Bearer ${config.bearer}`
+  if (config?.body) headers["Content-Type"] = "application/json"
   const response = await fetch(url, {
-    method: "GET",
+    method,
     headers,
+    body: config ? config.body && JSON.stringify(config.body) : undefined,
   })
 
   const responseContent = await getResponseContent(response)
   if (!response.ok) {
-    throw new Error(`GET request to url: ${url} failed, error: ${JSON.stringify(responseContent)}}`)
-  }
-
-  return responseContent as T
-}
-
-export async function postJsonData<T = any>(url: string, json?: any): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: json && JSON.stringify(json),
-  })
-
-  const responseContent = await getResponseContent(response)
-  if (!response.ok) {
-    console.error(`POST request to url: ${url} failed, error: ${responseContent}}`)
-    throw new ApiError(response.status, responseContent)
-  }
-
-  return responseContent as T
-}
-
-export async function deleteJsonData<T = any>(url: string, json?: any): Promise<T> {
-  const response = await fetch(url, {
-    method: "DELETE",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: json && JSON.stringify(json),
-  })
-
-  const responseContent = await getResponseContent(response)
-  if (!response.ok) {
-    throw new Error(`DELETE request to url: ${url} failed, error: ${responseContent}}`)
-  }
-
-  return responseContent as T
-}
-
-export async function putJsonData<T = any>(url: string, json?: any): Promise<T> {
-  const response = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: json && JSON.stringify(json),
-  })
-
-  const responseContent = await getResponseContent(response)
-  if (!response.ok) {
-    throw new Error(`PUT request to url: ${url} failed, error: ${responseContent}}`)
+    throw new Error(
+      `${method} request to url: ${url} failed, error: ${JSON.stringify(responseContent)}}`,
+    )
   }
 
   return responseContent as T

@@ -13,7 +13,7 @@ import { storageBucket } from "db/dist/firebase"
 import { Donation } from "types"
 import { getThisYear } from "utils/dist/date"
 import { ApiError } from "utils/dist/error"
-import { parseRequestBody } from "utils/dist/request"
+import { fetchJsonData, parseRequestBody } from "utils/dist/request"
 import { bufferToPngDataUrl, downloadImagesForDonee } from "utils/dist/db-helper"
 import { dataUrlToBase64 } from "utils/dist/image-helper"
 
@@ -180,18 +180,13 @@ const handler: AuthorisedHandler = async (req, res, session) => {
     return res.status(200).json({ campaignId })
   }
 
-  const emailWorkerTask = fetch(config.emailWorkerUrl, {
-    body: JSON.stringify({ body: JSON.stringify(reqBody) }),
+  const emailWorkerTask = fetchJsonData(config.emailWorkerUrl, {
+    body: JSON.stringify(reqBody),
     method: "POST",
     headers: { "x-api-key": config.emailWorkerApiKey, "Content-Type": "application/json" },
   })
-  const awaitEmailTask = req.headers["x-test-wait-for-email-worker"] === "true"
-  if (true) {
-    const workerTaskRes = await emailWorkerTask
-    const json = await workerTaskRes.json()
-    if (!workerTaskRes.ok || json.statusCode === "500" || json.statusCode === "400")
-      return res.status(workerTaskRes.status).json(json)
-  }
+
+  if (req.headers["x-test-wait-for-email-worker"] === "true") await emailWorkerTask
 
   res.status(200).json({ campaignId })
 }

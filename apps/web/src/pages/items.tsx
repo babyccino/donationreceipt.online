@@ -33,7 +33,7 @@ import {
   startOfThisYear,
   utcEpoch,
 } from "utils/dist/date"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 const DumbDatePicker = () => (
   <div className="relative w-full text-gray-700">
@@ -155,7 +155,7 @@ export default function Items(serialisedProps: SerialisedProps) {
 
     const items = getItems()
     const postData: ItemsApiDataType = { items, dateRange: customDateState }
-    await postJsonData("/api/items", postData)
+    await fetchJsonData("/api/items", { method: "POST", body: postData })
 
     const destination = detailsFilledIn ? "/generate-receipts" : "/details"
     await router.push({

@@ -177,10 +177,9 @@ export async function getCustomerSalesReport(
 ) {
   const url = makeSalesReportUrl(realmId, dates)
 
-  const salesReport = await fetchJsonData<CustomerSalesReport | CustomerSalesReportError>(
-    url,
-    accessToken,
-  )
+  const salesReport = await fetchJsonData<CustomerSalesReport | CustomerSalesReportError>(url, {
+    bearer: accessToken,
+  })
   if ("Fault" in salesReport) {
     const err = salesReport.Fault.Error[0]?.Message
     throw new ApiError(
@@ -196,12 +195,12 @@ export function getCustomerData(accessToken: string, realmId: string) {
 
   // TODO may need to do multiple queries if the returned array is 1000, i.e. the query did not contain all customers
 
-  return fetchJsonData<CustomerQueryResult>(url, accessToken)
+  return fetchJsonData<CustomerQueryResult>(url, { bearer: accessToken })
 }
 
 export async function getItems(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId.toString(), "select * from Item")
-  const itemQuery = await fetchJsonData<ItemQueryResponse>(url, accessToken)
+  const itemQuery = await fetchJsonData<ItemQueryResponse>(url, { bearer: accessToken })
   return formatItemQuery(itemQuery)
 }
 
@@ -213,7 +212,9 @@ export function formatItemQuery(itemQuery: ItemQueryResponse) {
 
 export async function getCompanyInfo(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId, "select * from CompanyInfo")
-  const companyQueryResult = await fetchJsonData<CompanyInfoQueryResult>(url, accessToken)
+  const companyQueryResult = await fetchJsonData<CompanyInfoQueryResult>(url, {
+    bearer: accessToken,
+  })
   return parseCompanyInfo(companyQueryResult)
 }
 

@@ -20,7 +20,7 @@ import { getDaysBetweenDates } from "utils/dist/date"
 import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nextjs-helper"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { subscribe } from "@/lib/util/request"
-import { postJsonData, putJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DisconnectBody } from "@/pages/api/auth/disconnect"
 import { DataType } from "@/pages/api/stripe/update-subscription"
@@ -121,7 +121,7 @@ function ProfileCard({
             onClick={async e => {
               e.preventDefault()
               const data: DataType = { cancelAtPeriodEnd: !subscription!.cancelAtPeriodEnd }
-              await putJsonData("/api/stripe/update-subscription", data)
+              await fetchJsonData("/api/stripe/update-subscription", { method: "PUT", body: data })
               router.push(router.asPath)
             }}
           >
@@ -135,9 +135,9 @@ function ProfileCard({
           className="flex-shrink"
           onClick={async () => {
             const body: DisconnectBody = { redirect: false }
-            const res = await postJsonData(
+            const res = await fetchJsonData(
               `/api/auth/disconnect?revoke=true${realmId ? `&realmId=${realmId}` : ""}`,
-              body,
+              { method: "POST", body },
             )
             router.push("/auth/disconnected")
             // router.push(res.redirect)

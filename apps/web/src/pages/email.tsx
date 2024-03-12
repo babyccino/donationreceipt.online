@@ -43,7 +43,7 @@ import {
 import { storageBucket } from "db/dist/firebase"
 import { formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 const WithBody = dynamic(() => import("components/dist/receipt/email").then(mod => mod.WithBody), {
   loading: () => null,
@@ -224,7 +224,10 @@ function SendEmails({
       checksum,
     }
     try {
-      const res = await postJsonData("/api/email", data)
+      const res = await fetchJsonData("/api/email", {
+        body: data,
+        headers: { method: "POST", "x-test-wait-for-email-worker": "true" },
+      })
       if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
       setLoading(false)
       setShowSendEmail(false)

@@ -25,7 +25,7 @@ import { DataType as DetailsApiDataType } from "@/pages/api/details"
 import { DoneeInfo, accounts, db, sessions } from "db"
 import { RemoveTimestamps } from "utils/dist/db-helper"
 import { base64DataUrlEncodeFile } from "utils/dist/image-helper"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 const imageHelper = "PNG, JPG, WebP or GIF (max 100kb)."
 const imageNotRequiredHelper = (
@@ -73,7 +73,10 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
     setLoading(true)
 
     const formData = await getFormData()
-    await postJsonData("/api/details", formData satisfies DetailsApiDataType)
+    await fetchJsonData("/api/details", {
+      method: "POST",
+      body: formData satisfies DetailsApiDataType,
+    })
 
     const destination = itemsFilledIn ? "/generate-receipts" : "/items"
     await router.push({

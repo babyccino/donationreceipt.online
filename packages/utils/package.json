@@ -8,6 +8,7 @@
   "files": ["dist/**"],
   "scripts": {
     "build": "tsup src/* --format esm,cjs --dts",
+    "build:aws": "tsup src/* --format cjs",
     "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "clean": "rm -rf ./dist",
     "dev": "tsup src/* --format esm,cjs --watch --dts",

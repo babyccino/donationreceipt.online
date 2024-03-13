@@ -4,7 +4,7 @@
   "globalEnv": ["PORT"],
   "pipeline": {
     "build:aws": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build:aws"]
     },
     "build": {
       "dependsOn": ["^build"]

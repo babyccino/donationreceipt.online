@@ -90,6 +90,7 @@ export default function Campaign({ recipients: initialRecipients, refresh, webho
       )
     )
       return
+    console.log("Closing webhook")
     webhookRef.current.close()
   }, [recipients, refresh])
 

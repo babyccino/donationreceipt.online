@@ -116,23 +116,23 @@ function ProfileCard({
             days
           </p>
           <Button
-            color={subscription!.cancelAtPeriodEnd ? undefined : "light"}
+            color={subscription.cancelAtPeriodEnd ? "blue" : "dark"}
             className="flex-shrink"
             onClick={async e => {
               e.preventDefault()
-              const data: DataType = { cancelAtPeriodEnd: !subscription!.cancelAtPeriodEnd }
+              const data: DataType = { cancelAtPeriodEnd: !subscription.cancelAtPeriodEnd }
               await fetchJsonData("/api/stripe/update-subscription", { method: "PUT", body: data })
               router.push(router.asPath)
             }}
           >
-            {subscription!.cancelAtPeriodEnd ? "Resubscribe" : "Unsubscribe"}
+            {subscription.cancelAtPeriodEnd ? "Resubscribe" : "Unsubscribe"}
           </Button>
         </>
       )}
       {connected ? (
-        // TODO this button was lookin weird
         <Button
-          color="light"
+          // this is the only colour which seems to work other than "blue" and I can't be bothered to fix it
+          color="dark"
           className="flex-shrink"
           onClick={async () => {
             const body: DisconnectBody = { redirect: false }
@@ -173,6 +173,7 @@ export default function AccountPage(serialisedProps: SerialisedProps) {
                   e.preventDefault()
                   subscribe("/account")
                 }}
+                color="blue"
               >
                 Go pro
               </LoadingButton>

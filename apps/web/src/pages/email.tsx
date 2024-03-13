@@ -503,7 +503,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     throw new ApiError(500, "account for given user and session not found in db")
 
   if (!account || account.scope !== "accounting" || !account.accessToken)
-    return disconnectedRedirect
+    return disconnectedRedirect("email")
 
   // if the session does not specify an account but there is a connected account
   // then the session is connected to one of these accounts
@@ -522,7 +522,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("email")
 
   if (!user.subscription || !isUserSubscribed(user.subscription))
     return { redirect: { permanent: false, destination: "subscribe" } }
@@ -542,7 +542,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
 
   const { currentAccountStatus } = await refreshTokenIfNeeded(account)
   if (currentAccountStatus === AuthAccountStatus.RefreshExpired) {
-    return refreshTokenRedirect()
+    return refreshTokenRedirect("email")
   }
 
   const donations = await getDonations(

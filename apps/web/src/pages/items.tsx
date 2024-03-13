@@ -291,11 +291,11 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("items")
 
   const { currentAccountStatus } = await refreshTokenIfNeeded(account)
   if (currentAccountStatus === AccountStatus.RefreshExpired) {
-    return refreshTokenRedirect()
+    return refreshTokenRedirect("items")
   }
   const realmId = account.realmId
   const items = await getItems(account.accessToken, realmId)

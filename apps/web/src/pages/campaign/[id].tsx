@@ -197,11 +197,11 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect(`campaign/${id}`)
 
   const { currentAccountStatus } = await refreshTokenIfNeeded(account)
   if (currentAccountStatus === AccountStatus.RefreshExpired) {
-    return refreshTokenRedirect()
+    return refreshTokenRedirect(`campaign/${id}`)
   }
   const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
 

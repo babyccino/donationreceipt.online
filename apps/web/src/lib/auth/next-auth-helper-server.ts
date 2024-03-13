@@ -121,17 +121,18 @@ export async function getServerSessionOrThrow(req: Request, res: ServerResponse)
   return session
 }
 
-export const disconnectedRedirect: { redirect: Redirect } = {
-  redirect: { permanent: false, destination: "/auth/disconnected" },
-}
-
+export const disconnectedRedirect = (callback?: string): { redirect: Redirect } => ({
+  redirect: {
+    permanent: false,
+    destination: "/auth/disconnected" + (callback ? `?callback=${callback}` : ""),
+  },
+})
 export const signInRedirect = (callback?: string): { redirect: Redirect } => ({
   redirect: {
     permanent: false,
     destination: "/auth/signin" + (callback ? `?callback=${callback}` : ""),
   },
 })
-
 export const refreshTokenRedirect = (callback?: string): { redirect: Redirect } => ({
   redirect: {
     permanent: false,

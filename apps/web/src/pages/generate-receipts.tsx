@@ -370,7 +370,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("generate-receipts")
   const { doneeInfo, userData, realmId } = account
 
   if (!doneeInfo || !userData)
@@ -386,7 +386,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
 
   const { currentAccountStatus } = await refreshTokenIfNeeded(account)
   if (currentAccountStatus === AccountStatus.RefreshExpired) {
-    return refreshTokenRedirect()
+    return refreshTokenRedirect("generate-receipts")
   }
 
   const { startDate, endDate, items } = userData

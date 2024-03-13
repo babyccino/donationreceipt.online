@@ -227,8 +227,6 @@ function SendEmails({
       const res = await fetchJsonData("/api/email", {
         method: "POST",
         body: data,
-        // TODO remove this header in prod as long requests will time out on vercel
-        headers: { "x-test-wait-for-email-worker": "true" },
       })
       if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
       setLoading(false)

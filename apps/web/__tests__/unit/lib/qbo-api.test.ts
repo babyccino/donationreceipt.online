@@ -578,7 +578,7 @@ describe("combineCustomerQueries", () => {
       time: "2022-04-05T20:03:09.216-07:00",
     }
 
-    const combinedQuery = combineCustomerQueries(query1, query2)
+    const combinedQuery = combineCustomerQueries([query1, query2])
     const expected: CustomerQueryResult = {
       QueryResponse: {
         Customer: [

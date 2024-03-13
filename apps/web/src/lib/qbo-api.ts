@@ -14,6 +14,7 @@ import {
   CustomerSalesReport,
   CustomerSalesReportError,
   CustomerSalesReportRow,
+  EmptyCustomerQueryResult,
   Item,
   ItemQueryResponse,
   RowData,
@@ -48,7 +49,9 @@ export function getAddressArray({
   return ret
 }
 
-export function combineCustomerQueries(...queries: CustomerQueryResult[]): CustomerQueryResult {
+export function combineCustomerQueries(queries: CustomerQueryResult[]): CustomerQueryResult {
+  if (queries.length === 1) return queries[0]
+
   const customers = queries.flatMap(({ QueryResponse: { Customer } }) => Customer)
   const total = queries.reduce((prev, { QueryResponse }) => prev + QueryResponse.maxResults, 0)
 
@@ -61,9 +64,12 @@ export function combineCustomerQueries(...queries: CustomerQueryResult[]): Custo
 export const addBillingAddressesToDonations = (
   donations: DonationWithoutAddress[],
   customers: CustomerQueryResult,
-) =>
-  donations.map<Donation>(donation => {
-    const customer = customers.QueryResponse.Customer.find(el => el.Id === donation.donorId)
+) => {
+  const Customer = customers.QueryResponse.Customer
+  if (!Customer) throw new Error("No customers found in query result")
+
+  return donations.map<Donation>(donation => {
+    const customer = Customer.find(el => el.Id === donation.donorId)
 
     if (!customer) throw new Error(`Customer not found for donation with id: ${donation.donorId}`)
 
@@ -73,6 +79,7 @@ export const addBillingAddressesToDonations = (
 
     return { ...donation, address, email: customer.PrimaryEmailAddr?.Address ?? null }
   })
+}
 
 const notGroupedRow = (row: CustomerSalesReportRow): row is SalesRow | SalesSectionRow =>
   !("group" in row)
@@ -190,12 +197,30 @@ export async function getCustomerSalesReport(
   return salesReport
 }
 
-export function getCustomerData(accessToken: string, realmId: string) {
+export async function getCustomerData(
+  accessToken: string,
+  realmId: string,
+): Promise<CustomerQueryResult> {
   const url = makeQueryUrl(realmId, "select * from Customer MAXRESULTS 1000")
 
-  // TODO may need to do multiple queries if the returned array is 1000, i.e. the query did not contain all customers
-
-  return fetchJsonData<CustomerQueryResult>(url, { bearer: accessToken })
+  const queries: CustomerQueryResult[] = []
+  // 1 indexed :(
+  let nextStart = 1
+  while (nextStart < 10000) {
+    const url = makeQueryUrl(
+      realmId,
+      `select * from Customer MAXRESULTS 1000 STARTPOSITION ${nextStart}`,
+    )
+    const nextRes = await fetchJsonData<CustomerQueryResult | EmptyCustomerQueryResult>(url, {
+      bearer: accessToken,
+    })
+    if (!("Customer" in nextRes.QueryResponse) || !(nextRes.QueryResponse.Customer.length < 1000)) {
+      break
+    }
+    queries.push(nextRes as CustomerQueryResult)
+    nextStart += 1000
+  }
+  return combineCustomerQueries(queries)
 }
 
 export async function getItems(accessToken: string, realmId: string) {

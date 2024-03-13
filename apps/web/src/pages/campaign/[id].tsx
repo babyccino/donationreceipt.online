@@ -17,7 +17,11 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { EmailStatus, accounts, db, receipts, sessions } from "db"
 
 type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
-type Props = { recipients: RecipientStatus[]; refresh: boolean; campaignId: string } & LayoutProps
+type Props = {
+  recipients: RecipientStatus[]
+  refresh: boolean
+  webhookUrl: string
+} & LayoutProps
 
 const getPillColor = (status: EmailStatus) => {
   switch (status) {
@@ -41,10 +45,7 @@ const getPillColor = (status: EmailStatus) => {
   }
 }
 
-const webhookUrl =
-  config.emailWebhookUrl.at(-1) === "/" ? config.emailWebhookUrl : `${config.emailWebhookUrl}/`
-
-export default function Campaign({ recipients: initialRecipients, refresh, campaignId }: Props) {
+export default function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
   const router = useRouter()
   // TODO: remove this when we have a better way to refresh the data
   const [recipients, setRecipients] = useState(initialRecipients)
@@ -52,7 +53,7 @@ export default function Campaign({ recipients: initialRecipients, refresh, campa
 
   useEffect(() => {
     if (!refresh) return
-    const ws = new WebSocket(`${webhookUrl}${campaignId}`)
+    const ws = new WebSocket(webhookUrl)
     ws.onmessage = event => {
       console.log("Received webhook event:", event.data)
       const { donorId, emailStatus } = JSON.parse(event.data) as {
@@ -73,7 +74,7 @@ export default function Campaign({ recipients: initialRecipients, refresh, campa
     }
     webhookRef.current = ws
     return () => ws.close()
-  }, [refresh, campaignId])
+  }, [refresh, webhookUrl])
 
   // if all the emails have been resolved (either sent, bounced, etc. doesn't matter), close the websocket
   useEffect(() => {
@@ -198,6 +199,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     return disconnectedRedirect
 
   await refreshTokenIfNeeded(account)
+  const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
 
   return {
     props: {
@@ -211,7 +213,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
           r.emailStatus === "sent" ||
           r.emailStatus === "not_sent",
       ),
-      campaignId: id,
+      webhookUrl,
     } satisfies Props,
   }
 }

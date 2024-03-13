@@ -28,11 +28,14 @@ func Truncate(rawBody []byte) []byte {
 				i += 1
 				mv += 1
 			}
+			if i+1 < len(rawBody) && rawBody[i+1] == '\\' {
+				i += 1
+				rawBody[i-mv] = rawBody[i]
+			}
 		} else {
 			rawBody[i-mv] = rawBody[i]
 		}
 	}
-	fmt.Println("mv:", mv)
 	return rawBody[start : end-mv]
 }
 

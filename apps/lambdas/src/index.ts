@@ -135,6 +135,7 @@ export async function sendReceipts(props: EmailWorkerDataType) {
     try {
       await sendEmail(entry, receiptBuffer, html)
     } catch (e) {
+      console.error(e)
       receiptSentFailures.push(entry)
     }
   }
@@ -156,7 +157,7 @@ export async function sendReceipts(props: EmailWorkerDataType) {
       ],
       html,
       headers: {
-        "X-SES-CONFIGURATION-SET": config.snsArn,
+        "X-SES-CONFIGURATION-SET": config.sesConfigSet,
         "X-DATA-CAMPAIGN-ID": campaignId,
         "X-DATA-DONOR-ID": entry.donorId,
       },
@@ -164,9 +165,15 @@ export async function sendReceipts(props: EmailWorkerDataType) {
 
     const { messageId, rejected } = awsRes
 
-    console.log("email sent to", entry.email, "with messageId", messageId, "rejected:", rejected)
+    console.log(
+      "email attempted to",
+      entry.email,
+      "with messageId",
+      messageId,
+      "rejected:",
+      rejected,
+    )
     delete (awsRes as any).raw
-    console.log("whole response:", awsRes)
     console.log("writing to db...")
     const dbInsert = db
       .update(receipts)
@@ -204,22 +211,23 @@ export async function sendReceipts(props: EmailWorkerDataType) {
   //   }
   // }
 
-  if (receiptSentFailures.length > 0) {
-    const dbInsert = db
-      .update(receipts)
-      .set({ emailStatus: "not_sent" })
-      .where(
-        and(
-          eq(receipts.campaignId, campaignId),
-          inArray(
-            receipts.donorId,
-            receiptSentFailures.map(d => d.donorId),
-          ),
-        ),
-      )
-      .run()
-    dbInserts.push(dbInsert)
-  }
+  // pretty sure I don't have to do this as receipts are all saved to the db with not_sent anyway
+  // if (receiptSentFailures.length > 0) {
+  //   const dbInsert = db
+  //     .update(receipts)
+  //     .set({ emailStatus: "not_sent" })
+  //     .where(
+  //       and(
+  //         eq(receipts.campaignId, campaignId),
+  //         inArray(
+  //           receipts.donorId,
+  //           receiptSentFailures.map(d => d.donorId),
+  //         ),
+  //       ),
+  //     )
+  //     .run()
+  //   dbInserts.push(dbInsert)
+  // }
 
   await Promise.all(dbInserts)
   // if using sendingRate option

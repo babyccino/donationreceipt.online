@@ -4,20 +4,25 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist/**"
-  ],
+  "files": ["dist/**"],
   "scripts": {
-    "bundle": "esbuild dist/index.js --bundle --minify --sourcemap --platform=node --outfile=aws-build/index.js",
     "build": "tsup src/* --format esm,cjs --dts",
-    "build:prod": "tsup src/* --format esm,cjs",
-    "build:aws": "npm run build:prod && npm run bundle",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsup src/* --format esm,cjs --dts --watch",
+    "build:aws": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --tree-shaking=true",
+    "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build:container": "cd ../.. && docker build --build-arg TURBO_TEAM=$TURBO_TEAM,TURBO_TOKEN=TURBO_TOKEN --platform linux/arm64 -f ./apps/lambdas/Dockerfile -t $LAMBDA_REPO . && cd ./apps/lambdas",
+    "ecs:login": "aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin $LAMBDA_REPO",
+    "ecs:push": "docker push $LAMBDA_REPO",
+    "lambda:update": "aws lambda update-function-code --function-name dono-lambda --image-uri $LAMBDA_REPO",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf ./dist"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.523.0",
     "@react-email/render": "^0.0.12",
     "@react-pdf/renderer": "^3.3.8",
+    "@sentry/serverless": "^7.104.0",
     "components": "*",
     "db": "*",
     "drizzle-orm": "^0.29.4",

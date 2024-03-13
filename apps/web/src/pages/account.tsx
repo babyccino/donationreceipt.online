@@ -20,7 +20,7 @@ import { getDaysBetweenDates } from "utils/dist/date"
 import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nextjs-helper"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { subscribe } from "@/lib/util/request"
-import { postJsonData, putJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DisconnectBody } from "@/pages/api/auth/disconnect"
 import { DataType } from "@/pages/api/stripe/update-subscription"
@@ -85,19 +85,19 @@ function ProfileCard({
       <h5 className="text-xl font-medium text-gray-500 dark:text-white">{name}</h5>
       <div className="space-y-1">
         {companyName && (
-          <p className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
+          <div className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
             <div className="mb-[-0.1rem] mr-2 inline-block h-4 w-4 text-white">
               <BriefcaseIcon />
             </div>
             {companyName}
-          </p>
+          </div>
         )}
-        <p className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
+        <div className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
           <div className="mb-[-0.1rem] mr-2 inline-block h-4 w-4 text-white">
             <MapPinIcon />
           </div>
           CA
-        </p>
+        </div>
       </div>
       {subscription && (
         <>
@@ -116,31 +116,31 @@ function ProfileCard({
             days
           </p>
           <Button
-            color={subscription!.cancelAtPeriodEnd ? undefined : "light"}
+            color={subscription.cancelAtPeriodEnd ? "blue" : "dark"}
             className="flex-shrink"
             onClick={async e => {
               e.preventDefault()
-              const data: DataType = { cancelAtPeriodEnd: !subscription!.cancelAtPeriodEnd }
-              await putJsonData("/api/stripe/update-subscription", data)
+              const data: DataType = { cancelAtPeriodEnd: !subscription.cancelAtPeriodEnd }
+              await fetchJsonData("/api/stripe/update-subscription", { method: "PUT", body: data })
               router.push(router.asPath)
             }}
           >
-            {subscription!.cancelAtPeriodEnd ? "Resubscribe" : "Unsubscribe"}
+            {subscription.cancelAtPeriodEnd ? "Resubscribe" : "Unsubscribe"}
           </Button>
         </>
       )}
       {connected ? (
         <Button
-          color="light"
+          // this is the only colour which seems to work other than "blue" and I can't be bothered to fix it
+          color="dark"
           className="flex-shrink"
           onClick={async () => {
             const body: DisconnectBody = { redirect: false }
-            const res = await postJsonData(
+            const res = await fetchJsonData(
               `/api/auth/disconnect?revoke=true${realmId ? `&realmId=${realmId}` : ""}`,
-              body,
+              { method: "POST", body },
             )
-            router.push("/auth/disconnected")
-            // router.push(res.redirect)
+            router.push("/auth/disconnected?callback=account")
           }}
         >
           Disconnect
@@ -173,6 +173,7 @@ export default function AccountPage(serialisedProps: SerialisedProps) {
                   e.preventDefault()
                   subscribe("/account")
                 }}
+                color="blue"
               >
                 Go pro
               </LoadingButton>

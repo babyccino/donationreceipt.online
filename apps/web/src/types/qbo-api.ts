@@ -132,6 +132,11 @@ export type CustomerQueryResult = {
   time: string
 }
 
+export type EmptyCustomerQueryResult = {
+  QueryResponse: {}
+  time: string
+}
+
 export type ColData = {
   value: string
   id?: string

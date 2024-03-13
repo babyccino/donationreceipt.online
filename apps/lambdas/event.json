@@ -1,0 +1,28 @@
+{
+  "body": {
+    "emailBody": "Test email",
+    "campaignId": "hy9xpdxns2v65vm03y50kdp8",
+    "doneeInfo": {
+      "companyName": "Test Company",
+      "signature": "https://firebasestorage.googleapis.com/v0/b/qbo-donation-receipts.appspot.com/o/s9ldpoav013rj1k7hnzsl39y%2F9130352012378706%2Fsignature.webp?alt=media&token=06066ccc-c7f2-4d1d-980d-abf511bbd79a",
+      "smallLogo": "https://firebasestorage.googleapis.com/v0/b/qbo-donation-receipts.appspot.com/o/s9ldpoav013rj1k7hnzsl39y%2F9130352012378706%2FsmallLogo.webp?alt=media&token=6aa0c1a3-270e-4d88-80f9-4a617ffca448",
+      "country": "Canada",
+      "companyAddress": "123 Fake St.",
+      "registrationNumber": "123456789RR0002",
+      "signatoryName": "Gus Ryan",
+      "largeLogo": "https://firebasestorage.googleapis.com/v0/b/qbo-donation-receipts.appspot.com/o/s9ldpoav013rj1k7hnzsl39y%2F9130352012378706%2FsmallLogo.webp?alt=media&token=6aa0c1a3-270e-4d88-80f9-4a617ffca448"
+    },
+    "userData": { "items": "1,2,3", "startDate": "`2023-01-01", "endDate": "2023-12-31" },
+    "donations": [
+      {
+        "name": "Test Donee",
+        "donorId": "123",
+        "total": 100,
+        "items": [{ "name": "Test Item", "id": "1", "total": 100 }],
+        "address": "123 Fake St.",
+        "email": "gus.ryan163@gmail.com"
+      }
+    ],
+    "counter": 1
+  }
+}

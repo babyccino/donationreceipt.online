@@ -1,18 +1,20 @@
 import { test, describe, expect, mock, afterEach } from "bun:test"
 
-import { fetchJsonData, postJsonData } from "@/request"
+import { fetchJsonData } from "../src/request"
 
 function mockGlobalFetch(arg: { ok: boolean; json: () => any; headers?: { get: () => string } }) {
-  const mockFetch = mock((url: string, headers: any, body: string) => arg)
+  const mockFetch = mock(
+    (url: string, args: { headers: Record<string, string>; body?: string; method: string }) => arg,
+  )
   global.fetch = mockFetch as any
   return mockFetch
 }
 
-describe("postJsonData", () => {
+describe("fetchJsonData", () => {
   const globalFetch = global.fetch
   afterEach(() => (global.fetch = globalFetch))
 
-  test("posts data successfully and returns it", async () => {
+  test("fetches data successfully and returns it", async () => {
     const url = "https://example.com/data"
     const postData = { foo: "foo" }
     const response = { bar: "bar" }
@@ -23,13 +25,13 @@ describe("postJsonData", () => {
       headers: { get: () => "application/json" },
     })
 
-    const result = await postJsonData(url, postData)
+    const result = await fetchJsonData(url, { body: postData })
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0]).toEqual([
       url,
       {
-        method: "POST",
+        method: "GET",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -51,13 +53,8 @@ describe("postJsonData", () => {
       headers: { get: () => "application/json" },
     })
 
-    expect(postJsonData(url, postData)).rejects.toBeDefined()
+    expect(fetchJsonData(url, { body: postData })).rejects.toBeDefined()
   })
-})
-
-describe("fetchJsonData", () => {
-  const globalFetch = global.fetch
-  afterEach(() => (global.fetch = globalFetch))
 
   test("fetches data successfully and returns it", async () => {
     const url = "https://example.com/data"
@@ -70,12 +67,13 @@ describe("fetchJsonData", () => {
       json: () => expectedData,
     })
 
-    const result = await fetchJsonData(url, accessToken)
+    const result = await fetchJsonData(url, { bearer: accessToken })
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0]).toEqual([
       url,
       {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: "application/json",
@@ -85,7 +83,7 @@ describe("fetchJsonData", () => {
     expect(result).toEqual(expectedData)
   })
 
-  test("fetches data successfully and returns it without access token", async () => {
+  test("posts data successfully and returns it without access token", async () => {
     const url = "https://example.com/data"
     const expectedData = { foo: "bar" }
 
@@ -95,12 +93,13 @@ describe("fetchJsonData", () => {
       json: () => expectedData,
     })
 
-    const result = await fetchJsonData(url)
+    const result = await fetchJsonData(url, { method: "POST" })
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0]).toEqual([
       url,
       {
+        method: "POST",
         headers: {
           Accept: "application/json",
         },
@@ -109,16 +108,27 @@ describe("fetchJsonData", () => {
     expect(result).toEqual(expectedData)
   })
 
-  test("throws an error when the response is not ok", async () => {
+  test("post data throws an error when the response is not ok", async () => {
     const url = "https://example.com/data"
     const accessToken = "someAccessToken"
     const errorData = { message: "Unauthorized" }
 
-    mockGlobalFetch({
+    const mockFetch = mockGlobalFetch({
       ok: false,
       json: () => errorData,
     })
 
-    expect(fetchJsonData(url, accessToken)).rejects.toBeDefined()
+    expect(fetchJsonData(url, { bearer: accessToken, method: "POST" })).rejects.toBeDefined()
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0]).toEqual([
+      url,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    ])
   })
 })

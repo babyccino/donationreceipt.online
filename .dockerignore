@@ -1,0 +1,28 @@
+**/bin
+**/node_modules
+**/.gitignore
+**/.prettierignore
+**/prettier.config.js
+**/Dockerfile
+**/dist
+**/*.env
+
+.git
+
+# apps/web
+apps/web/.env*
+apps/web/.next
+apps/web/.github
+
+# apps/lambda
+apps/lambda/.aws-sam
+apps/lambda/aws-build
+apps/lambda/prebuild
+apps/lambda/template.yaml
+apps/lambda/samconfig.toml
+apps/lambda/*.sh
+
+# packages/db
+packages/db/drizzle.config.ts
+packages/db/drizzle
+packages/db/firebase

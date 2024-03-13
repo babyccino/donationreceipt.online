@@ -60,7 +60,7 @@ const signIn: QboCallbacksOptions["signIn"] = async ({ user, account, profile })
 
   const userInfo = await fetchJsonData<OpenIdUserInfo>(
     `${qboAccountsBaseRoute}/openid_connect/userinfo`,
-    accessToken as string,
+    { bearer: accessToken as string },
   )
   const { email, givenName: name } = userInfo
   if (typeof email !== "string") throw new ApiError(500, "email not returned by openid request")

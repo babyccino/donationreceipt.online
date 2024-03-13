@@ -3,8 +3,10 @@
   "globalDependencies": ["**/.env.*local"],
   "globalEnv": ["PORT"],
   "pipeline": {
+    "build:aws": {
+      "dependsOn": ["^build:aws"]
+    },
     "build": {
-      // "outputs" are defined in Workspace Configurations: https://turbo.build/repo/docs/core-concepts/monorepos/configuring-workspaces
       "dependsOn": ["^build"]
     },
     "test": {
@@ -15,7 +17,10 @@
       "dependsOn": ["^build"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build:typesonly"]
+    },
+    "build:typesonly": {
+      "dependsOn": ["^build:typesonly"]
     },
     "dev": {
       "cache": false,

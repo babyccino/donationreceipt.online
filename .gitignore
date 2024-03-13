@@ -1,5 +1,6 @@
 dist
 build
+out
 
 .DS_Store
 
@@ -28,8 +29,7 @@ rootkey.csv
 
 .react-email
 
-/drizzle
-*.db*
+**/*.db*
 
 .dev.vars
 

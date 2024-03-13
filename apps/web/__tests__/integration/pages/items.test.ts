@@ -27,7 +27,7 @@ describe("items page getServerSideProps", () => {
     const { session, deleteUser } = await createUser(false)
     const ctx = getMockApiContext("GET", session.sessionToken, {})
     const props = await getServerSideProps(ctx as any)
-    expect(props).toEqual(disconnectedRedirect)
+    expect(props).toEqual(disconnectedRedirect("items"))
     await deleteUser()
   })
 

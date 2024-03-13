@@ -1,0 +1,29 @@
+services:
+  reverse-proxy:
+    image: babyccino/dono-reverse-proxy:latest
+    platform: linux/amd64
+    restart: on-failure
+    # network_mode: "host"
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    ports:
+      - 443:443
+      - 80:80
+      - 81:81
+    volumes:
+      - /etc/letsencrypt/ssl/:/etc/nginx/ssl/
+    links:
+      - webhook
+
+  webhook:
+    image: babyccino/dono-webhook:latest
+    env_file: ./.env
+    platform: linux/amd64
+    restart: on-failure
+    # network_mode: "host"
+    build:
+      context: ./webhook
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080

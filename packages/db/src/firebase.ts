@@ -1,6 +1,10 @@
 import admin from "firebase-admin"
 
-import { config } from "./env"
+import { getConfig } from "utils/dist/config"
+
+const vitalKeys = ["FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PRIVATE_KEY"] as const
+const config = getConfig({ vitalKeys, nonVitalKeys: [] as const })
+
 const { firebaseProjectId, firebaseClientEmail, firebasePrivateKey } = config
 
 // set env variable FIRESTORE_EMULATOR_HOST to use firebase emulator
@@ -18,6 +22,7 @@ const { firebaseProjectId, firebaseClientEmail, firebasePrivateKey } = config
 
 if (!admin.apps.length) {
   try {
+    console.log("initializing firebase admin...")
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: firebaseProjectId,

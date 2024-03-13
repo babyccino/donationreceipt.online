@@ -6,6 +6,7 @@ import {
   ChatBubbleLeftEllipsisIcon,
   ChevronDownIcon,
   DocumentTextIcon,
+  EnvelopeIcon,
   GlobeAltIcon,
   InformationCircleIcon,
   PlusSmallIcon,
@@ -24,7 +25,7 @@ import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 
 import { subscribe } from "@/lib/util/request"
 import { DataType } from "@/pages/api/switch-company"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 export type LayoutProps = {
   session: Session | null
@@ -110,7 +111,7 @@ export default function Layout(
                 <NavLink link="/items" logo={<ShoppingBagIcon />} label="Items" />
                 <NavLink link="/details" logo={<RectangleStackIcon />} label="Details" />
                 <NavLink link="/generate-receipts" logo={<TableCellsIcon />} label="Receipts" />
-                {/* <NavLink link="/email" logo={<EnvelopeIcon />} label="Email" /> */}
+                <NavLink link="/email" logo={<EnvelopeIcon />} label="Email" />
                 <NavLink link="/account" logo={<UserCircleIcon />} label="Account" />
                 <hr
                   style={{ margin: "1rem 0" }}
@@ -210,8 +211,13 @@ const Companies = ({
         <li key={accountId}>
           <button
             onClick={async () => {
-              await postJsonData("/api/switch-company", { accountId } satisfies DataType)
-              router.replace(router.asPath)
+              const res = await fetchJsonData("/api/switch-company", {
+                method: "POST",
+                body: { accountId } satisfies DataType,
+              })
+
+              if (res.redirect) router.push(res.destination)
+              else router.replace(router.asPath)
             }}
             className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
           >

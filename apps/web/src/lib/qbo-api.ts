@@ -14,6 +14,7 @@ import {
   CustomerSalesReport,
   CustomerSalesReportError,
   CustomerSalesReportRow,
+  EmptyCustomerQueryResult,
   Item,
   ItemQueryResponse,
   RowData,
@@ -48,7 +49,9 @@ export function getAddressArray({
   return ret
 }
 
-export function combineCustomerQueries(...queries: CustomerQueryResult[]): CustomerQueryResult {
+export function combineCustomerQueries(queries: CustomerQueryResult[]): CustomerQueryResult {
+  if (queries.length === 1) return queries[0]
+
   const customers = queries.flatMap(({ QueryResponse: { Customer } }) => Customer)
   const total = queries.reduce((prev, { QueryResponse }) => prev + QueryResponse.maxResults, 0)
 
@@ -61,9 +64,12 @@ export function combineCustomerQueries(...queries: CustomerQueryResult[]): Custo
 export const addBillingAddressesToDonations = (
   donations: DonationWithoutAddress[],
   customers: CustomerQueryResult,
-) =>
-  donations.map<Donation>(donation => {
-    const customer = customers.QueryResponse.Customer.find(el => el.Id === donation.donorId)
+) => {
+  const Customer = customers.QueryResponse.Customer
+  if (!Customer) throw new Error("No customers found in query result")
+
+  return donations.map<Donation>(donation => {
+    const customer = Customer.find(el => el.Id === donation.donorId)
 
     if (!customer) throw new Error(`Customer not found for donation with id: ${donation.donorId}`)
 
@@ -73,6 +79,7 @@ export const addBillingAddressesToDonations = (
 
     return { ...donation, address, email: customer.PrimaryEmailAddr?.Address ?? null }
   })
+}
 
 const notGroupedRow = (row: CustomerSalesReportRow): row is SalesRow | SalesSectionRow =>
   !("group" in row)
@@ -177,10 +184,9 @@ export async function getCustomerSalesReport(
 ) {
   const url = makeSalesReportUrl(realmId, dates)
 
-  const salesReport = await fetchJsonData<CustomerSalesReport | CustomerSalesReportError>(
-    url,
-    accessToken,
-  )
+  const salesReport = await fetchJsonData<CustomerSalesReport | CustomerSalesReportError>(url, {
+    bearer: accessToken,
+  })
   if ("Fault" in salesReport) {
     const err = salesReport.Fault.Error[0]?.Message
     throw new ApiError(
@@ -191,17 +197,35 @@ export async function getCustomerSalesReport(
   return salesReport
 }
 
-export function getCustomerData(accessToken: string, realmId: string) {
+export async function getCustomerData(
+  accessToken: string,
+  realmId: string,
+): Promise<CustomerQueryResult> {
   const url = makeQueryUrl(realmId, "select * from Customer MAXRESULTS 1000")
 
-  // TODO may need to do multiple queries if the returned array is 1000, i.e. the query did not contain all customers
-
-  return fetchJsonData<CustomerQueryResult>(url, accessToken)
+  const queries: CustomerQueryResult[] = []
+  // 1 indexed :(
+  let nextStart = 1
+  while (nextStart < 10000) {
+    const url = makeQueryUrl(
+      realmId,
+      `select * from Customer MAXRESULTS 1000 STARTPOSITION ${nextStart}`,
+    )
+    const nextRes = await fetchJsonData<CustomerQueryResult | EmptyCustomerQueryResult>(url, {
+      bearer: accessToken,
+    })
+    if (!("Customer" in nextRes.QueryResponse) || !(nextRes.QueryResponse.Customer.length < 1000)) {
+      break
+    }
+    queries.push(nextRes as CustomerQueryResult)
+    nextStart += 1000
+  }
+  return combineCustomerQueries(queries)
 }
 
 export async function getItems(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId.toString(), "select * from Item")
-  const itemQuery = await fetchJsonData<ItemQueryResponse>(url, accessToken)
+  const itemQuery = await fetchJsonData<ItemQueryResponse>(url, { bearer: accessToken })
   return formatItemQuery(itemQuery)
 }
 
@@ -213,7 +237,9 @@ export function formatItemQuery(itemQuery: ItemQueryResponse) {
 
 export async function getCompanyInfo(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId, "select * from CompanyInfo")
-  const companyQueryResult = await fetchJsonData<CompanyInfoQueryResult>(url, accessToken)
+  const companyQueryResult = await fetchJsonData<CompanyInfoQueryResult>(url, {
+    bearer: accessToken,
+  })
   return parseCompanyInfo(companyQueryResult)
 }
 

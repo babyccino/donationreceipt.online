@@ -9,7 +9,6 @@ import { Alert, Button, Checkbox, Label, Modal, Toast } from "flowbite-react"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
 import { useRouter } from "next/router"
 import { Dispatch, SetStateAction, useMemo, useState } from "react"
 
@@ -18,15 +17,17 @@ import { LayoutProps } from "@/components/layout"
 import { EmailSentToast, LoadingButton, MissingData } from "@/components/ui"
 import { dummyEmailProps } from "@/emails/props"
 import {
+  AccountStatus as AuthAccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { defaultEmailBody, formatEmailBody, templateDonorName, trimHistoryById } from "@/lib/email"
 import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
-import { SerialiseDates, deSerialiseDates, dynamic, serialiseDates } from "@/lib/util/nextjs-helper"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { SerialiseDates, deSerialiseDates, dynamic, serialiseDates } from "@/lib/util/nextjs-helper"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { EmailDataType } from "@/pages/api/email"
 import { EmailProps } from "components/dist/receipt/types"
@@ -38,12 +39,13 @@ import {
   db,
   receipts,
   sessions,
-  storageBucket,
   users,
 } from "db"
+import { storageBucket } from "db/dist/firebase"
 import { formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
-import { postJsonData } from "utils/dist/request"
+import { ApiError } from "utils/dist/error"
+import { fetchJsonData } from "utils/dist/request"
 
 const WithBody = dynamic(() => import("components/dist/receipt/email").then(mod => mod.WithBody), {
   loading: () => null,
@@ -89,9 +91,9 @@ function EmailInput() {
         onChange={e => setEmailBody(e.currentTarget.value)}
         rows={10}
       />
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
         Use <code>{templateDonorName}</code> to reference your donor{"'"}s name
-      </p>
+      </div>
     </Fieldset>
   )
 }
@@ -131,7 +133,7 @@ const CampaignOverlap = ({ campaign }: { campaign: Campaign[] }) => (
       Your selection of donees and date range overlaps with previous campaigns
       <UpArrow className="h-5 w-5 shrink-0 group-open:rotate-180 group-open:text-gray-700 dark:group-open:text-gray-200" />
     </summary>
-    <p className="font-light">
+    <div className="font-light">
       <div className="mb-2">
         Please verify you are not receipting the same donations twice. The following campaigns have
         overlap with the current:
@@ -167,7 +169,7 @@ const CampaignOverlap = ({ campaign }: { campaign: Campaign[] }) => (
           </li>
         ))}
       </ul>
-    </p>
+    </div>
   </details>
 )
 
@@ -224,7 +226,10 @@ function SendEmails({
       checksum,
     }
     try {
-      const res = await postJsonData("/api/email", data)
+      const res = await fetchJsonData("/api/email", {
+        method: "POST",
+        body: data,
+      })
       if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
       setLoading(false)
       setShowSendEmail(false)
@@ -498,7 +503,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     throw new ApiError(500, "account for given user and session not found in db")
 
   if (!account || account.scope !== "accounting" || !account.accessToken)
-    return disconnectedRedirect
+    return disconnectedRedirect("email")
 
   // if the session does not specify an account but there is a connected account
   // then the session is connected to one of these accounts
@@ -517,7 +522,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("email")
 
   if (!user.subscription || !isUserSubscribed(user.subscription))
     return { redirect: { permanent: false, destination: "subscribe" } }
@@ -535,7 +540,10 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     return { props: serialiseDates(props) }
   }
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AuthAccountStatus.RefreshExpired) {
+    return refreshTokenRedirect("email")
+  }
 
   const donations = await getDonations(
     account.accessToken,

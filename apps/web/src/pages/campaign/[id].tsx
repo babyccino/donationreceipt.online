@@ -2,21 +2,28 @@ import { and, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
 import { ApiError } from "next/dist/server/api-utils"
+import { useRouter } from "next/router"
+import { useEffect, useRef, useState } from "react"
 
 import { LayoutProps } from "@/components/layout"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
-import { db } from "db"
+import { config } from "@/lib/env"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { accounts, receipts, sessions, EmailStatus } from "db"
-import { useRouter } from "next/router"
+import { EmailStatus, accounts, db, receipts, sessions } from "db"
 
-type RecipientStatus = { email: string; emailStatus: EmailStatus }
-type Props = { recipients: RecipientStatus[]; refresh: boolean } & LayoutProps
+type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
+type Props = {
+  recipients: RecipientStatus[]
+  refresh: boolean
+  webhookUrl: string
+} & LayoutProps
 
 const getPillColor = (status: EmailStatus) => {
   switch (status) {
@@ -40,13 +47,52 @@ const getPillColor = (status: EmailStatus) => {
   }
 }
 
-export default function Campaign({ recipients, refresh }: Props) {
+export default function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
   const router = useRouter()
-  if (refresh) {
-    setTimeout(() => {
-      router.replace(router.asPath)
-    }, 2500)
-  }
+  const [recipients, setRecipients] = useState(initialRecipients)
+  const webhookRef = useRef<WebSocket>()
+
+  useEffect(() => {
+    if (!refresh) return
+    const ws = new WebSocket(webhookUrl)
+    ws.onmessage = event => {
+      console.log("Received webhook event:", event.data)
+      const { donorId, status } = JSON.parse(event.data) as {
+        donorId: string
+        status: EmailStatus
+      }
+      if (!donorId || donorId.length === 0 || !status || status.length === 0) {
+        console.error("Invalid webhook data:", event.data)
+        return
+      }
+      setRecipients(prev => {
+        const index = prev.findIndex(r => r.donorId === donorId)
+        if (index === -1) return prev
+        const newRecipients = [...prev]
+        newRecipients[index].emailStatus = status
+        return newRecipients
+      })
+    }
+    webhookRef.current = ws
+    return () => ws.close()
+  }, [refresh, webhookUrl])
+
+  // if all the emails have been resolved (either sent, bounced, etc. doesn't matter), close the websocket
+  useEffect(() => {
+    if (refresh) return
+    if (!webhookRef.current) return
+    if (
+      recipients.some(
+        r =>
+          r.emailStatus === "delivery_delayed" ||
+          r.emailStatus === "sent" ||
+          r.emailStatus === "not_sent",
+      )
+    )
+      return
+    console.log("Closing webhook")
+    webhookRef.current.close()
+  }, [recipients, refresh])
 
   return (
     <div className="sm:py-8">
@@ -128,7 +174,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     }) as Promise<{ companyName: string; id: string }[]>,
     db.query.receipts.findMany({
       where: eq(receipts.campaignId, id),
-      columns: { email: true, emailStatus: true },
+      columns: { email: true, emailStatus: true, donorId: true },
       orderBy: desc(receipts.email),
     }),
   ])
@@ -152,30 +198,27 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect(`campaign/${id}`)
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect(`campaign/${id}`)
+  }
+  const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
 
   return {
     props: {
       companies: accountList,
       session,
       selectedAccountId: session.accountId,
-      recipients: [
-        ...recipients,
-        { email: "test@test.com", emailStatus: "delivery_delayed" },
-        { email: "test@test.com", emailStatus: "delivered" },
-        { email: "test@test.com", emailStatus: "opened" },
-        { email: "test@test.com", emailStatus: "clicked" },
-        { email: "test@test.com", emailStatus: "bounced" },
-        { email: "test@test.com", emailStatus: "complained" },
-      ],
+      recipients,
       refresh: recipients.some(
         r =>
           r.emailStatus === "delivery_delayed" ||
           r.emailStatus === "sent" ||
           r.emailStatus === "not_sent",
       ),
+      webhookUrl,
     } satisfies Props,
   }
 }

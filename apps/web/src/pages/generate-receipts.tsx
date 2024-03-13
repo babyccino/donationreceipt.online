@@ -11,8 +11,10 @@ import { twMerge } from "tailwind-merge"
 import { LayoutProps } from "@/components/layout"
 import { LoadingButton, MissingData } from "@/components/ui"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getDonations } from "@/lib/qbo-api"
@@ -28,7 +30,8 @@ import {
   ShowReceiptLoading,
 } from "components/dist/receipt/pdf-dumb"
 import { EmailProps } from "components/dist/receipt/types"
-import { DoneeInfo, accounts, campaigns, db, sessions, storageBucket } from "db"
+import { DoneeInfo, accounts, campaigns, db, sessions } from "db"
+import { storageBucket } from "db/dist/firebase"
 import { Donation } from "types"
 import { getDonationRange, getThisYear } from "utils/dist/date"
 import { downloadImageAndConvertToPng } from "utils/dist/db-helper"
@@ -367,7 +370,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("generate-receipts")
   const { doneeInfo, userData, realmId } = account
 
   if (!doneeInfo || !userData)
@@ -381,7 +384,10 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
       } satisfies Props,
     }
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect("generate-receipts")
+  }
 
   const { startDate, endDate, items } = userData
   const [donations, pngSignature, pngLogo, counterQuery] = await Promise.all([

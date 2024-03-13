@@ -12,8 +12,10 @@ import { Fieldset, Legend, Toggle } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
 import { LoadingSubmitButton } from "@/components/ui"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getItems } from "@/lib/qbo-api"
@@ -33,7 +35,7 @@ import {
   startOfThisYear,
   utcEpoch,
 } from "utils/dist/date"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 const DumbDatePicker = () => (
   <div className="relative w-full text-gray-700">
@@ -155,7 +157,7 @@ export default function Items(serialisedProps: SerialisedProps) {
 
     const items = getItems()
     const postData: ItemsApiDataType = { items, dateRange: customDateState }
-    await postJsonData("/api/items", postData)
+    await fetchJsonData("/api/items", { method: "POST", body: postData })
 
     const destination = detailsFilledIn ? "/generate-receipts" : "/details"
     await router.push({
@@ -289,9 +291,12 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("items")
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect("items")
+  }
   const realmId = account.realmId
   const items = await getItems(account.accessToken, realmId)
   const detailsFilledIn = Boolean(account.doneeInfo)

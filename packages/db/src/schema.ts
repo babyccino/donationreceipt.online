@@ -281,7 +281,10 @@ export const receipts = sqliteTable(
   receipt => ({
     emailIdIndex: uniqueIndex("receipts__email_id__idx").on(receipt.emailId),
     campaignIndex: index("receipts__campaign_id__idx").on(receipt.campaignId),
-    campaignEmailIndex: uniqueIndex("receipts__campaign_id__email__idx").on(receipt.campaignId),
+    campaignEmailIndex: uniqueIndex("receipts__campaign_id__donor_id__idx").on(
+      receipt.campaignId,
+      receipt.donorId,
+    ),
   }),
 )
 export type Receipt = typeof receipts.$inferSelect

@@ -10,8 +10,10 @@ import { Fieldset, ImageInput, Legend } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
 import { LoadingButton, LoadingSubmitButton } from "@/components/ui"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getCompanyInfo } from "@/lib/qbo-api"
@@ -25,7 +27,7 @@ import { DataType as DetailsApiDataType } from "@/pages/api/details"
 import { DoneeInfo, accounts, db, sessions } from "db"
 import { RemoveTimestamps } from "utils/dist/db-helper"
 import { base64DataUrlEncodeFile } from "utils/dist/image-helper"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 const imageHelper = "PNG, JPG, WebP or GIF (max 100kb)."
 const imageNotRequiredHelper = (
@@ -73,7 +75,10 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
     setLoading(true)
 
     const formData = await getFormData()
-    await postJsonData("/api/details", formData satisfies DetailsApiDataType)
+    await fetchJsonData("/api/details", {
+      method: "POST",
+      body: formData satisfies DetailsApiDataType,
+    })
 
     const destination = itemsFilledIn ? "/generate-receipts" : "/items"
     await router.push({
@@ -241,9 +246,12 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, query 
     !account.realmId ||
     !session.accountId
   )
-    return disconnectedRedirect
+    return disconnectedRedirect("details")
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect("details")
+  }
   const realmId = account.realmId
   const itemsFilledIn = Boolean(account.userData)
 

@@ -4,7 +4,7 @@ import { APIGatewayProxyEvent } from "aws-lambda"
 import { HttpResponse, http } from "msw"
 import { SetupServer, setupServer } from "msw/node"
 
-import { lambdaHandler } from "@/lambda"
+import { _handler as handler } from "lambdas"
 import { makeQueryUrl, makeSalesReportUrl } from "@/lib/qbo-api"
 import { config } from "@/lib/env"
 import { deleteAll, mockResponses, testRealmId } from "./mocks"
@@ -31,13 +31,18 @@ beforeAll(async () => {
       return HttpResponse.error()
     }),
     http.get(salesReportUrl, () => HttpResponse.json(customerSalesReport)),
-    http.post(config.emailWorkerUrl, async ({ request }) => {
-      const rawBody = await request.text()
-      const req = { body: rawBody }
-      const res = await lambdaHandler(req as APIGatewayProxyEvent)
-      return HttpResponse.json(res.body, { status: res.statusCode })
-    }),
   ]
+
+  if (config.sendEmailsInternal !== "true") {
+    handlers.push(
+      http.post(config.emailWorkerUrl, async ({ request }) => {
+        const rawBody = await request.text()
+        const req = { body: rawBody }
+        const res = await handler(req as APIGatewayProxyEvent)
+        return HttpResponse.json(res.body, { status: res.statusCode })
+      }),
+    )
+  }
 
   server = setupServer(...handlers)
   server.listen()

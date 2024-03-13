@@ -132,16 +132,18 @@ type ButtonProps = FlowbiteButtonProps &
       }
   )
 export function LoadingButton(props: ButtonProps) {
-  if ("loadingImmediately" in props && props.loadingImmediately)
-    return <LoadingButtonImmediately {...props} />
-  else return <_LoadingButton {...(props as ButtonProps & { loading: boolean })} />
+  if ("loadingImmediately" in props && props.loadingImmediately) {
+    const { loadingImmediately, ...rest } = props
+    return <LoadingButtonImmediately {...rest} />
+  } else return <_LoadingButton {...(props as ButtonProps & { loading: boolean })} />
 }
-export function _LoadingButton(
-  props: FlowbiteButtonProps & {
-    loading: boolean
-  },
-) {
-  if (props.loading)
+export function _LoadingButton({
+  loading,
+  ...props
+}: FlowbiteButtonProps & {
+  loading: boolean
+}) {
+  if (loading)
     return <LoadingButtonInner className={props.className}>{props.children}</LoadingButtonInner>
   else return <Button {...props}></Button>
 }

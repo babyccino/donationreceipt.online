@@ -4,7 +4,7 @@ import { FormEventHandler, useRef, useState } from "react"
 import { EmailSentToast, LoadingSubmitButton } from "@/components/ui"
 import { htmlRegularCharactersRegexString, regularCharacterHelperText } from "@/lib/util/regex"
 import { DataType as ContactDataType } from "@/pages/api/support"
-import { postJsonData } from "utils/dist/request"
+import { fetchJsonData } from "utils/dist/request"
 
 export default function Support() {
   const formRef = useRef<HTMLFormElement>(null)
@@ -28,10 +28,11 @@ export default function Support() {
   }
 
   const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
+    if (loading) return
+    setLoading(true)
     event.preventDefault()
-    // setLoading(true)
     const formData: ContactDataType = getFormData()
-    const apiResponse = await postJsonData("/api/support", formData)
+    const apiResponse = await fetchJsonData("/api/support", { method: "POST", body: formData })
     setLoading(false)
     setShowEmailSentToast(true)
   }

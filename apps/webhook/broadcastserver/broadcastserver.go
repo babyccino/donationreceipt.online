@@ -17,7 +17,7 @@ import (
 
 	"webhook/events"
 
-	_ "github.com/tursodatabase/go-libsql"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	"nhooyr.io/websocket"
 )
 
@@ -46,17 +46,22 @@ func (subGroup *subscriberGroup) addEvent(event SubscriberGroupEvent) {
 	// if buffer is full the subscriber is closed
 	subEvent := SubscriberEvent{DonorId: event.donorId, Status: event.status}
 	subGroup.subscribersLock.Lock()
+	count := 0
 	for sub := range subGroup.subscribers {
 		if sub.events == nil {
 			continue
 		}
 		select {
 		case sub.events <- subEvent:
+			{
+				count++
+			}
 		default:
 			sub.closeSlow()
 		}
 	}
 	subGroup.subscribersLock.Unlock()
+	fmt.Printf("[debug] %d subscribers were sent an event \n", count)
 }
 
 const MAX_EVENT_AGE = time.Second * 30
@@ -141,7 +146,6 @@ type subscriber struct {
 }
 
 func (server *BroadcastServer) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	fmt.Println("request received")
 	server.serveMux.ServeHTTP(writer, req)
 }
 
@@ -214,9 +218,15 @@ func (server *BroadcastServer) PublishHandler(writer http.ResponseWriter, req *h
 		return
 	}
 
-	fmt.Print("[debug] rawBody: ", string(rawBody))
+	campaignId, donorId, emailId, status, err := events.ParseSnsEvent(rawBody)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[error] failed to parse sns event: %s", err)
+		fmt.Fprintf(os.Stderr, "[error] rawBody: %s", string(rawBody))
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
 
-	campaignId, donorId, _, status, err := events.ParseSnsEvent(rawBody)
+	fmt.Printf("[debug] event received: campaignId: %s, donorId: %s, status: %s, emailId: %s \n", campaignId, donorId, status, emailId)
 
 	event := SubscriberGroupEvent{donorId: donorId, status: status, createdAt: time.Now()}
 
@@ -236,18 +246,25 @@ func (server *BroadcastServer) PublishHandler(writer http.ResponseWriter, req *h
 
 const sqlStatement = `
 UPDATE receipts
-	SET email_status = $1
-	WHERE campaign_id = $2 AND donor_id = $3;
+	SET email_status = $emailStatus
+	WHERE campaign_id = $campaignId AND donor_id = $donorId;
 `
 
 func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status string) error {
-	res, err := server.db.Exec(sqlStatement, status, campaignId, donorId)
+	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[error] an error occured writing to the db %s", err)
 		return err
 	}
 
 	affected, err := res.RowsAffected()
-	if err != nil || affected == 0 {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[error] an error occured unwrapping the rows affected %s", err)
+		return err
+	}
+	if affected == 0 {
+		fmt.Printf("[error] donorId: %s, campaignId: %s, emailStatus: %s \n", donorId, campaignId, status)
+		fmt.Fprintln(os.Stderr, "[error] no rows affected by update query")
 		return errors.New("no rows affected")
 	}
 	return nil

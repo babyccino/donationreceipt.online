@@ -10,6 +10,10 @@
     "dev": "tsup src/* --format esm,cjs --dts --watch",
     "build:aws": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --tree-shaking=true",
     "build:typesonly": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build:container": "cd ../.. && docker build --build-arg TURBO_TEAM=$TURBO_TEAM,TURBO_TOKEN=TURBO_TOKEN --platform linux/arm64 -f ./apps/lambdas/Dockerfile -t $LAMBDA_REPO . && cd ./apps/lambdas",
+    "ecs:login": "aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin $LAMBDA_REPO",
+    "ecs:push": "docker push $LAMBDA_REPO",
+    "lambda:update": "aws lambda update-function-code --function-name dono-lambda --image-uri $LAMBDA_REPO",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf ./dist"

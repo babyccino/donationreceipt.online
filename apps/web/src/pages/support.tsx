@@ -28,8 +28,9 @@ export default function Support() {
   }
 
   const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
+    if (loading) return
+    setLoading(true)
     event.preventDefault()
-    // setLoading(true)
     const formData: ContactDataType = getFormData()
     const apiResponse = await fetchJsonData("/api/support", { method: "POST", body: formData })
     setLoading(false)
@@ -97,8 +98,6 @@ export default function Support() {
     </section>
   )
 }
-
-// TODO fix bug with support email being sent multiple times
 
 // --- server-side props ---
 

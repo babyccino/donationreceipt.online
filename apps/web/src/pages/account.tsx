@@ -85,19 +85,19 @@ function ProfileCard({
       <h5 className="text-xl font-medium text-gray-500 dark:text-white">{name}</h5>
       <div className="space-y-1">
         {companyName && (
-          <p className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
+          <div className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
             <div className="mb-[-0.1rem] mr-2 inline-block h-4 w-4 text-white">
               <BriefcaseIcon />
             </div>
             {companyName}
-          </p>
+          </div>
         )}
-        <p className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
+        <div className="text-sm font-normal leading-tight text-gray-500 dark:text-gray-400">
           <div className="mb-[-0.1rem] mr-2 inline-block h-4 w-4 text-white">
             <MapPinIcon />
           </div>
           CA
-        </p>
+        </div>
       </div>
       {subscription && (
         <>
@@ -130,6 +130,7 @@ function ProfileCard({
         </>
       )}
       {connected ? (
+        // TODO this button was lookin weird
         <Button
           color="light"
           className="flex-shrink"
@@ -139,8 +140,7 @@ function ProfileCard({
               `/api/auth/disconnect?revoke=true${realmId ? `&realmId=${realmId}` : ""}`,
               { method: "POST", body },
             )
-            router.push("/auth/disconnected")
-            // router.push(res.redirect)
+            router.push("/auth/disconnected?callback=account")
           }}
         >
           Disconnect

@@ -181,7 +181,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
   }
 
   const emailWorkerTask = fetchJsonData(config.emailWorkerUrl, {
-    body: JSON.stringify(reqBody),
+    body: reqBody,
     method: "POST",
     headers: { "x-api-key": config.emailWorkerApiKey, "Content-Type": "application/json" },
   })

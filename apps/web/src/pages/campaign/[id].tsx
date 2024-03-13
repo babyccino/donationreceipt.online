@@ -56,11 +56,11 @@ export default function Campaign({ recipients: initialRecipients, refresh, webho
     const ws = new WebSocket(webhookUrl)
     ws.onmessage = event => {
       console.log("Received webhook event:", event.data)
-      const { donorId, emailStatus } = JSON.parse(event.data) as {
+      const { donorId, status } = JSON.parse(event.data) as {
         donorId: string
-        emailStatus: EmailStatus
+        status: EmailStatus
       }
-      if (!donorId || donorId.length === 0 || !emailStatus || emailStatus.length === 0) {
+      if (!donorId || donorId.length === 0 || !status || status.length === 0) {
         console.error("Invalid webhook data:", event.data)
         return
       }
@@ -68,7 +68,7 @@ export default function Campaign({ recipients: initialRecipients, refresh, webho
         const index = prev.findIndex(r => r.donorId === donorId)
         if (index === -1) return prev
         const newRecipients = [...prev]
-        newRecipients[index].emailStatus = emailStatus
+        newRecipients[index].emailStatus = status
         return newRecipients
       })
     }

@@ -17,8 +17,10 @@ import { LayoutProps } from "@/components/layout"
 import { EmailSentToast, LoadingButton, MissingData } from "@/components/ui"
 import { dummyEmailProps } from "@/emails/props"
 import {
+  AccountStatus as AuthAccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { defaultEmailBody, formatEmailBody, templateDonorName, trimHistoryById } from "@/lib/email"
@@ -538,7 +540,10 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     return { props: serialiseDates(props) }
   }
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AuthAccountStatus.RefreshExpired) {
+    return refreshTokenRedirect()
+  }
 
   const donations = await getDonations(
     account.accessToken,

@@ -12,8 +12,10 @@ import { Fieldset, Legend, Toggle } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
 import { LoadingSubmitButton } from "@/components/ui"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getItems } from "@/lib/qbo-api"
@@ -291,7 +293,10 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
   )
     return disconnectedRedirect
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect()
+  }
   const realmId = account.realmId
   const items = await getItems(account.accessToken, realmId)
   const detailsFilledIn = Boolean(account.doneeInfo)

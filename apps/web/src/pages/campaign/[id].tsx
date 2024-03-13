@@ -7,8 +7,10 @@ import { useEffect, useRef, useState } from "react"
 
 import { LayoutProps } from "@/components/layout"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { config } from "@/lib/env"
@@ -47,7 +49,6 @@ const getPillColor = (status: EmailStatus) => {
 
 export default function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
   const router = useRouter()
-  // TODO: remove this when we have a better way to refresh the data
   const [recipients, setRecipients] = useState(initialRecipients)
   const webhookRef = useRef<WebSocket>()
 
@@ -198,7 +199,10 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
   )
     return disconnectedRedirect
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect()
+  }
   const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
 
   return {

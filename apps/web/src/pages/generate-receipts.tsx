@@ -11,8 +11,10 @@ import { twMerge } from "tailwind-merge"
 import { LayoutProps } from "@/components/layout"
 import { LoadingButton, MissingData } from "@/components/ui"
 import {
+  AccountStatus,
   disconnectedRedirect,
   refreshTokenIfNeeded,
+  refreshTokenRedirect,
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getDonations } from "@/lib/qbo-api"
@@ -382,7 +384,10 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
       } satisfies Props,
     }
 
-  await refreshTokenIfNeeded(account)
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect()
+  }
 
   const { startDate, endDate, items } = userData
   const [donations, pngSignature, pngLogo, counterQuery] = await Promise.all([

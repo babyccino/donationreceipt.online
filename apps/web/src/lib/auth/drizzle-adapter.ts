@@ -1,30 +1,17 @@
 import { createId } from "@paralleldrive/cuid2"
-import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { and, desc, eq, gt, isNotNull, or } from "drizzle-orm"
 import { LibSQLDatabase } from "drizzle-orm/libsql"
 import { Adapter, AdapterAccount, AdapterSession } from "next-auth/adapters"
 import { ApiError } from "next/dist/server/api-utils"
 
-import { Account, Schema, accounts, sessions, users, verificationTokens } from "db"
+import { Schema, accounts, sessions, users, verificationTokens } from "db"
 import { oneHrFromNow } from "utils/dist/date"
 import { getCompanyInfo } from "../qbo-api"
+import { refreshTokenIfNeeded } from "./next-auth-helper-server"
 
 const DEFAULT_QBO_REFRESH_PERIOD_DAYS = 101
 const SECONDS_IN_DAY = 60 * 60 * 24
 const DEFAULT_QBO_REFRESH_PERIOD_MS = DEFAULT_QBO_REFRESH_PERIOD_DAYS * SECONDS_IN_DAY * 1000
-export enum AccountStatus {
-  Active = 0,
-  AccessExpired,
-  RefreshExpired,
-}
-export function accountStatus({
-  expiresAt,
-  refreshTokenExpiresAt,
-}: Pick<Account, "expiresAt" | "refreshTokenExpiresAt">) {
-  if (!expiresAt || !refreshTokenExpiresAt) return AccountStatus.RefreshExpired
-  if (Date.now() > refreshTokenExpiresAt.getTime()) return AccountStatus.RefreshExpired
-  if (Date.now() > expiresAt.getTime()) return AccountStatus.AccessExpired
-  return AccountStatus.Active
-}
 
 export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
   async createUser(userData) {
@@ -148,20 +135,29 @@ export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
       )
   },
   async createSession(data, account, profile) {
-    // find the most recently updated account's realmid and set the
-    // if the account used to sign in is not qbo-connected but the user has a qbo-connected account
-    // find the most recent one of these accounts and use it
     if (!account.realmId) {
-      // TODO only find accounts which have valid refresh tokens
-      // TODO then refresh the token
+      // find the most recently updated account's realmid and set the
+      // if the account used to sign in is not qbo-connected but the user has a qbo-connected account
+      // find the most recent one of these accounts and use it
+      // also make sure the account has either a valid access token or a valid refresh token
       const dbAccount = await db.query.accounts.findFirst({
-        where: and(isNotNull(accounts.realmId), eq(accounts.userId, data.userId)),
+        where: and(
+          isNotNull(accounts.realmId),
+          eq(accounts.userId, data.userId),
+          or(gt(accounts.expiresAt, new Date()), gt(accounts.refreshTokenExpiresAt, new Date())),
+        ),
         columns: {
           id: true,
+          expiresAt: true,
+          refreshToken: true,
+          accessToken: true,
+          refreshTokenExpiresAt: true,
         },
         orderBy: desc(accounts.updatedAt),
       })
       if (dbAccount) {
+        // if the account has expired, refresh the access token
+        await refreshTokenIfNeeded(dbAccount)
         account.id = dbAccount.id
       }
     }

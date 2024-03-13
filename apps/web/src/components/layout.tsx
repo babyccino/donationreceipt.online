@@ -211,11 +211,13 @@ const Companies = ({
         <li key={accountId}>
           <button
             onClick={async () => {
-              await fetchJsonData("/api/switch-company", {
+              const res = await fetchJsonData("/api/switch-company", {
                 method: "POST",
                 body: { accountId } satisfies DataType,
               })
-              router.replace(router.asPath)
+
+              if (res.redirect) router.push(res.destination)
+              else router.replace(router.asPath)
             }}
             className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
           >

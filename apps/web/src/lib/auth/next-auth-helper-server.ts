@@ -6,7 +6,6 @@ import { JWT, encode } from "next-auth/jwt"
 import { getCsrfToken } from "next-auth/react"
 import { ApiError } from "next/dist/server/api-utils"
 
-import { AccountStatus, accountStatus } from "@/lib/auth/drizzle-adapter"
 import crypto from "@/lib/crypto"
 import { config } from "@/lib/env"
 import { refreshAccessToken } from "@/lib/qbo-api"
@@ -133,6 +132,13 @@ export const signInRedirect = (callback?: string): { redirect: Redirect } => ({
   },
 })
 
+export const refreshTokenRedirect = (callback?: string): { redirect: Redirect } => ({
+  redirect: {
+    permanent: false,
+    destination: "/auth/refresh" + (callback ? `?callback=${callback}` : ""),
+  },
+})
+
 export async function refreshTokenIfNeeded<
   T extends Pick<
     Account,
@@ -140,10 +146,10 @@ export async function refreshTokenIfNeeded<
   >,
 >(account: T): Promise<{ account: T; currentAccountStatus: AccountStatus }> {
   const currentAccountStatus = accountStatus(account)
-  if (currentAccountStatus === AccountStatus.RefreshExpired) {
-    // implement refresh token expired logic
-    throw new ApiError(400, "refresh token expired")
-  } else if (currentAccountStatus === AccountStatus.Active) {
+  if (
+    currentAccountStatus === AccountStatus.RefreshExpired ||
+    currentAccountStatus === AccountStatus.Active
+  ) {
     return { account, currentAccountStatus }
   }
   const token = await refreshAccessToken(account.refreshToken as string)
@@ -167,4 +173,19 @@ export async function refreshTokenIfNeeded<
   account.refreshToken = token.refresh_token
   account.refreshTokenExpiresAt = refreshTokenExpiresAt
   return { account, currentAccountStatus }
+}
+
+export enum AccountStatus {
+  Active = 0,
+  AccessExpired,
+  RefreshExpired,
+}
+export function accountStatus({
+  expiresAt,
+  refreshTokenExpiresAt,
+}: Pick<Account, "expiresAt" | "refreshTokenExpiresAt">) {
+  if (!expiresAt || !refreshTokenExpiresAt) return AccountStatus.RefreshExpired
+  if (Date.now() > refreshTokenExpiresAt.getTime()) return AccountStatus.RefreshExpired
+  if (Date.now() > expiresAt.getTime()) return AccountStatus.AccessExpired
+  return AccountStatus.Active
 }

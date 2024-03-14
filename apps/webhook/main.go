@@ -54,7 +54,7 @@ func run() error {
 		os.Exit(1)
 	}
 
-	chatServer, err := broadcastserver.NewBroadcastServer(snsArn, db)
+	chatServer, err := broadcastserver.NewBroadcastServer(snsArn, db, 30*time.Second)
 	if err != nil {
 		return err
 	}

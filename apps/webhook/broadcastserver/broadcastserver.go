@@ -31,9 +31,23 @@ type subscriberGroup struct {
 	subscribers     map[*subscriber]struct{}
 	eventsLock      sync.Mutex
 	events          []SubscriberGroupEvent
+	maxEventAge     time.Duration
 	lastFlushed     time.Time
 	updatedAt       time.Time
 	createdAt       time.Time
+}
+
+func newSubscriberGroup(maxEventAge time.Duration) *subscriberGroup {
+	return &subscriberGroup{
+		subscribersLock: sync.Mutex{},
+		subscribers: make(map[*subscriber]struct{}),
+		eventsLock: sync.Mutex{},
+		events: make([]SubscriberGroupEvent, 0),
+		maxEventAge: maxEventAge,
+		lastFlushed: time.Now(),
+		createdAt:   time.Now(),
+		updatedAt:   time.Now(),
+	}
 }
 
 func (subGroup *subscriberGroup) addEvent(event SubscriberGroupEvent) {
@@ -63,12 +77,10 @@ func (subGroup *subscriberGroup) addEvent(event SubscriberGroupEvent) {
 	fmt.Printf("[debug] %d subscribers were sent an event \n", count)
 }
 
-const MAX_EVENT_AGE = time.Second * 30
-
 // user must lock eventsLock before calling this
 func (subGroup *subscriberGroup) flush() {
 	now := time.Now()
-	minEventTime := now.Add(-1 * MAX_EVENT_AGE)
+	minEventTime := now.Add(-1 * subGroup.maxEventAge)
 	if subGroup.lastFlushed.After(minEventTime) {
 		return
 	}
@@ -98,23 +110,21 @@ type BroadcastServer struct {
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
 	logf func(f string, v ...interface{})
-
 	serveMux http.ServeMux
-
 	subscriberGroupLock sync.Mutex
 	subscriberGroupMap  map[string]*subscriberGroup
-
 	snsArn string
-
 	db *sql.DB
+	maxEventAge time.Duration
 }
 
-func NewBroadcastServer(snsArn string, db *sql.DB) (*BroadcastServer, error) {
+func NewBroadcastServer(snsArn string, db *sql.DB, maxEventAge time.Duration) (*BroadcastServer, error) {
 	server := &BroadcastServer{
 		db:                 db,
 		snsArn:             snsArn,
 		logf:               log.Printf,
 		subscriberGroupMap: make(map[string]*subscriberGroup),
+		maxEventAge:        maxEventAge,
 	}
 	server.serveMux.HandleFunc("/", func(writer http.ResponseWriter, req *http.Request) {
 		writer.Write([]byte("Go to wss:*/subscribe/campaignId to connect"))
@@ -226,7 +236,7 @@ func (server *BroadcastServer) PublishHandler(writer http.ResponseWriter, req *h
 	server.subscriberGroupLock.Lock()
 	subGroup, ok := server.subscriberGroupMap[campaignId]
 	if !ok {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
+		subGroup = newSubscriberGroup(server.maxEventAge)
 		server.subscriberGroupMap[campaignId] = subGroup
 	}
 	server.subscriberGroupLock.Unlock()
@@ -293,7 +303,7 @@ func (server *BroadcastServer) TestPublishHandler(writer http.ResponseWriter, r 
 	server.subscriberGroupLock.Lock()
 	subGroup, ok := server.subscriberGroupMap[parsedBody.CampaignId]
 	if !ok {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
+		subGroup = newSubscriberGroup(server.maxEventAge)
 		server.subscriberGroupMap[parsedBody.CampaignId] = subGroup
 	}
 	server.subscriberGroupLock.Unlock()
@@ -404,7 +414,7 @@ func (server *BroadcastServer) AddSubscriber(ctx context.Context, sub *subscribe
 	server.subscriberGroupLock.Lock()
 	subGroup, found := server.subscriberGroupMap[campaignId]
 	if !found {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
+		subGroup = newSubscriberGroup(server.maxEventAge)
 		server.subscriberGroupMap[campaignId] = subGroup
 	}
 	defer server.subscriberGroupLock.Unlock()

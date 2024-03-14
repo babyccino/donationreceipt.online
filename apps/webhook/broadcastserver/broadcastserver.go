@@ -274,46 +274,6 @@ UPDATE receipts
 	return nil
 }
 
-// publishHandler reads the request body with a limit of 8192 bytes and then publishes
-// the received message.
-func (server *BroadcastServer) TestPublishHandler(writer http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(writer, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-	body := http.MaxBytesReader(writer, r.Body, 8192)
-	msg, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(writer, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	var parsedBody struct {
-		CampaignId string `json:"campaignId"`
-		DonorId    string `json:"donorId"`
-		Status     string `json:"status"`
-	}
-	err2 := json.Unmarshal(msg, &parsedBody)
-	if err2 != nil || parsedBody.CampaignId == "" || parsedBody.DonorId == "" || parsedBody.Status == "" {
-		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		fmt.Fprintln(os.Stderr, "[error] invalid test request body")
-		return
-	}
-
-	server.subscriberGroupLock.Lock()
-	subGroup, ok := server.subscriberGroupMap[parsedBody.CampaignId]
-	if !ok {
-		subGroup = newSubscriberGroup(server.maxEventAge)
-		server.subscriberGroupMap[parsedBody.CampaignId] = subGroup
-	}
-	server.subscriberGroupLock.Unlock()
-
-	event := SubscriberGroupEvent{donorId: parsedBody.DonorId, status: parsedBody.Status, createdAt: time.Now()}
-	subGroup.addEvent(event)
-
-	writer.WriteHeader(http.StatusAccepted)
-}
-
 // subscribeHandler accepts the WebSocket connection and then subscribes
 // it to all future messages.
 func (server *BroadcastServer) SubscribeHandler(writer http.ResponseWriter, req *http.Request) {

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"webhook/broadcastserver"
 
 	"github.com/joho/godotenv"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 func main() {
@@ -45,7 +48,13 @@ func run() error {
 		}
 	}
 
-	chatServer, err := broadcastserver.NewBroadcastServer(snsArn, dbUrl)
+	db, err := sql.Open("libsql", dbUrl)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[error] failed to open db %s: %s", dbUrl, err)
+		os.Exit(1)
+	}
+
+	chatServer, err := broadcastserver.NewBroadcastServer(snsArn, db)
 	if err != nil {
 		return err
 	}

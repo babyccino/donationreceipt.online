@@ -17,7 +17,6 @@ import (
 
 	"webhook/events"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	"nhooyr.io/websocket"
 )
 
@@ -110,13 +109,7 @@ type BroadcastServer struct {
 	db *sql.DB
 }
 
-func NewBroadcastServer(snsArn, dbUrl string) (*BroadcastServer, error) {
-	db, err := sql.Open("libsql", dbUrl)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[error] failed to open db %s: %s", dbUrl, err)
-		os.Exit(1)
-	}
-
+func NewBroadcastServer(snsArn string, db *sql.DB) (*BroadcastServer, error) {
 	server := &BroadcastServer{
 		db:                 db,
 		snsArn:             snsArn,
@@ -239,19 +232,20 @@ func (server *BroadcastServer) PublishHandler(writer http.ResponseWriter, req *h
 	server.subscriberGroupLock.Unlock()
 
 	subGroup.addEvent(event)
-	server.WriteEventToDb(donorId, campaignId, status)
+	server.WriteEventToDb(donorId, campaignId, status, emailId)
 
 	writer.WriteHeader(http.StatusAccepted)
 }
 
-const sqlStatement = `
+func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status, emailId string) error {
+	const sqlStatement = `
 UPDATE receipts
-	SET email_status = $emailStatus
-	WHERE campaign_id = $campaignId AND donor_id = $donorId;
+		SET email_status = $emailStatus,
+			email_id = $emailId
+		WHERE campaign_id = $campaignId AND donor_id = $donorId;
 `
 
-func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status string) error {
-	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
+	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("emailId", emailId), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[error] an error occured writing to the db %s", err)
 		return err

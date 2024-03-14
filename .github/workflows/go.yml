@@ -1,0 +1,29 @@
+name: Go test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22"
+      - name: Install dependencies
+        working-directory: ./apps/webhook
+        run: go get .
+      - name: Test with Go
+        working-directory: ./apps/webhook
+        run: go test -json > ./TestResults.json
+      - name: Upload Go test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Go-results
+          path: ./apps/webhook/TestResults.json

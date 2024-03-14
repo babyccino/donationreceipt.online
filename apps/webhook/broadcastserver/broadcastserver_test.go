@@ -30,6 +30,7 @@ type CampaignMessages struct {
 func messageHash(donorId, status string) string {
 	return fmt.Sprintf(`{"donorId":%s,"status":%s}`, donorId, status)
 }
+
 func Test_chatServer(test *testing.T) {
 	test.Parallel()
 
@@ -39,7 +40,7 @@ func Test_chatServer(test *testing.T) {
 	test.Run("simple", func(test *testing.T) {
 		test.Parallel()
 
-		testBroadcastServer := setupBroadcastServerTester(test)
+		testBroadcastServer := setupBroadcastServerTester(test, 30*time.Second)
 		defer testBroadcastServer.close()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -71,10 +72,75 @@ func Test_chatServer(test *testing.T) {
 		assertSuccess(test, err)
 	})
 
+	test.Run("flush test", func(test *testing.T) {
+		test.Parallel()
+
+		testBroadcastServer := setupBroadcastServerTester(test, 1*time.Second)
+		defer testBroadcastServer.close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		campaignId := "test-campaign"
+
+		donorId1 := randAlphaNumericString(10)
+		emailId1 := randAlphaNumericString(10)
+		emailStatus1 := events.Send
+		err := testBroadcastServer.generateDbEntriesForEvent(campaignId, donorId1, emailId1)
+		assertSuccess(test, err)
+		err = testBroadcastServer.publishEvent(ctx, campaignId, donorId1, emailId1, emailStatus1)
+		assertSuccess(test, err)
+
+		subscribeUrl := testBroadcastServer.url + "/subscribe/" + campaignId
+		client1, err := newClient(ctx, subscribeUrl)
+		assertSuccess(test, err)
+		defer client1.Close()
+
+		expectedMessageJson1, err := client1.nextMessage(ctx)
+		assertSuccess(test, err)
+
+		mappedEvent1 := events.MapSnsEvent(events.EventType(emailStatus1))
+		if expectedMessageJson1.DonorId != donorId1 || expectedMessageJson1.Status != mappedEvent1 {
+			test.Fatalf("expected %v but got %v", messageHash(donorId1, mappedEvent1), messageHash(expectedMessageJson1.DonorId, expectedMessageJson1.Status))
+		}
+
+		time.Sleep(1*time.Second + 100*time.Millisecond)
+
+		donorId2 := randAlphaNumericString(10)
+		emailId2 := randAlphaNumericString(10)
+		emailStatus2 := events.Send
+		err = testBroadcastServer.generateDbEntriesForEvent(campaignId, donorId2, emailId2)
+		assertSuccess(test, err)
+		err = testBroadcastServer.publishEvent(ctx, campaignId, donorId2, emailId2, emailStatus2)
+		assertSuccess(test, err)
+
+		expectedMessageJson2, err := client1.nextMessage(ctx)
+		assertSuccess(test, err)
+
+		mappedEvent2 := events.MapSnsEvent(events.EventType(emailStatus2))
+		if expectedMessageJson2.DonorId != donorId2 || expectedMessageJson2.Status != mappedEvent2 {
+			test.Fatalf("expected %v but got %v", messageHash(donorId2, mappedEvent2), messageHash(expectedMessageJson2.DonorId, expectedMessageJson2.Status))
+		}
+
+		client2, err := newClient(ctx, subscribeUrl)
+		assertSuccess(test, err)
+		defer client2.Close()
+
+		expectedMessageJson2, err = client2.nextMessage(ctx)
+		assertSuccess(test, err)
+
+		mappedEvent2 = events.MapSnsEvent(events.EventType(emailStatus2))
+		if expectedMessageJson2.DonorId != donorId2 || expectedMessageJson2.Status != mappedEvent2 {
+			test.Fatalf("expected %v but got %v", messageHash(donorId2, mappedEvent2), messageHash(expectedMessageJson2.DonorId, expectedMessageJson2.Status))
+		}
+
+		err = testBroadcastServer.testDbForReceipt(campaignId, donorId1, emailId1, mappedEvent1)
+		assertSuccess(test, err)
+	})
+
 	// This test is a complex concurrency test.
-	// 10 clients are started that send 128 different
-	// messages of max 128 bytes concurrently.
-	//
+	// 16 clients listening to 4 separate campaigns
+	// and 128 messages are split between the campaigns.
 	// The test verifies that every message is seen by ever client
 	// and no errors occur anywhere.
 	test.Run("concurrency", func(test *testing.T) {
@@ -84,7 +150,7 @@ func Test_chatServer(test *testing.T) {
 		const nClients = 16
 		const nCampaigns = 4
 
-		broadcastServerTester := setupBroadcastServerTester(test)
+		broadcastServerTester := setupBroadcastServerTester(test, 30*time.Second)
 		defer broadcastServerTester.close()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -223,7 +289,7 @@ type BroadcastServerTester struct {
 
 // Defer closeFn to ensure everything is cleaned up at
 // the end of the test.
-func setupBroadcastServerTester(test *testing.T) *BroadcastServerTester {
+func setupBroadcastServerTester(test *testing.T, maxEventAge time.Duration) *BroadcastServerTester {
 	test.Helper()
 	newUuid := uuid.New().String()
 	dbPath := fmt.Sprintf("./%s.db", newUuid)
@@ -272,7 +338,7 @@ func setupBroadcastServerTester(test *testing.T) *BroadcastServerTester {
 		test.Fatalf("[error] failed to create indices: %s", err)
 	}
 
-	broadcastServer, err := NewBroadcastServer(snsArn, db)
+	broadcastServer, err := NewBroadcastServer(snsArn, db, maxEventAge)
 	if err != nil {
 		os.Remove(dbPath)
 		test.Fatalf("[error] failed to open db %s: %s", dbUrl, err)

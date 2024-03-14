@@ -6,6 +6,8 @@ import (
 )
 
 func TestTruncate(t *testing.T) {
+	t.Parallel()
+
 	rawBody := []byte(`"{\"hi\": \"hi\"}\n"`)
 	expected := []byte(`{"hi": "hi"}`)
 	actual := Truncate(rawBody)
@@ -29,15 +31,17 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestParseSnsEvent(t *testing.T) {
-	testCampaignId := "test-campaign-id-2"
-	testDonorId := "test-donor-id-2"
-	testEmailId := "test-email-id-2"
+	t.Parallel()
+
+	testCampaignId := "test-campaign-id-1"
+	testDonorId := "test-donor-id-1"
+	testEmailId := "test-email-id-1"
 	replacer := strings.NewReplacer(
 		"test-campaign-id", testCampaignId,
 		"test-donor-id", testDonorId,
 		"test-message-id", testEmailId,
 	)
-	rawString := []byte(`{
+	rawString := `{
 "Type" : "Notification",
 "MessageId" : "test-message-id",
 "TopicArn" : "test-topic-arn",
@@ -48,8 +52,8 @@ func TestParseSnsEvent(t *testing.T) {
 "Signature" : "test.signature.png",
 "SigningCertURL" : "https://sns.test-region.amazonaws.com",
 "UnsubscribeURL" : "https://sns.test-region.amazonaws.com"
-}`)
-	rawBody := []byte(replacer.Replace(string(rawString)))
+}`
+	rawBody := []byte(replacer.Replace(rawString))
 	campaignId, donorId, emailId, status, err := ParseSnsEvent(rawBody)
 	if err != nil {
 		t.Errorf("ParseSnsEvent unexpectedly produced an error: %v", err)

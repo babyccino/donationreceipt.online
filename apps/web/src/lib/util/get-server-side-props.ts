@@ -6,11 +6,13 @@ import { getServerSession } from "next-auth"
 
 import { LayoutProps } from "@/components/layout"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { config } from "@/lib/env"
 
 export function interceptGetServerSidePropsErrors<T extends GetServerSideProps<any>>(
   getServerSideProps: T,
 ) {
   return async (ctx: any) => {
+    if (config.nodeEnv === "test") return await getServerSideProps(ctx)
     try {
       return await getServerSideProps(ctx)
     } catch (error: any) {

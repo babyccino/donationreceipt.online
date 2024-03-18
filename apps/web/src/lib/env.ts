@@ -53,5 +53,7 @@ const nonVitalKeys = [
   "SEND_EMAILS_INTERNAL",
 
   "NODE_ENV",
+
+  "DEV_DB_LOCATION",
 ] as const
 export const config = getConfig({ vitalKeys, nonVitalKeys })

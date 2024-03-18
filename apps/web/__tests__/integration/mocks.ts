@@ -108,7 +108,7 @@ export async function createUser(connected: boolean) {
     .insert(users)
     .values({
       id: userId,
-      email: Math.round(Math.random() * 15) + "@gmail.com",
+      email: Math.round(Math.random() * Math.pow(10, 15)) + "@gmail.com",
       name: "Test User",
     })
     .returning()
@@ -246,6 +246,9 @@ const itemQueryResponseItemsShared = {
   },
 } as const
 
+const testEmails = ["success", "bounce", "ooto", "complaint", "suppressionlist"] as const
+const testEmailDomain = "simulator.amazonses.com"
+
 export function createMockResponses(itemCount: number, donorCount: number) {
   const customerSalesReportColumns: CustomerSalesReport["Columns"]["Column"] = [
     {
@@ -289,14 +292,27 @@ export function createMockResponses(itemCount: number, donorCount: number) {
     MetaData: [],
   })
 
-  const customers: { donorId: string; name: string; email: string }[] = []
+  const itemTotals = new Array<number>(itemCount).fill(0)
+  const cutsomerSalesReportRows: CustomerSalesReportRow[] = []
+  const customers: {
+    donorId: string
+    name: string
+    email: string
+    donations: {
+      name: string
+      id: string
+      total: number
+    }[]
+    total: number
+  }[] = []
   const customerQueryCustomers: Customer[] = []
   for (let i = 0; i < donorCount; ++i) {
     const name = getRandomName()
     const donorId = createId()
-    customers.push({ name, email: "delivered@resend.dev", donorId })
+    const email = `${testEmails[i % testEmails.length]}+${donorId}@${testEmailDomain}`
+
     const [firstName, familyName] = name.split(" ")
-    const customer: Customer = {
+    customerQueryCustomers.push({
       ...customerShared,
       Id: donorId,
       GivenName: firstName,
@@ -307,27 +323,14 @@ export function createMockResponses(itemCount: number, donorCount: number) {
       PrintOnCheckName: name,
       Active: true,
       PrimaryEmailAddr: {
-        Address: "delivered@resend.dev",
+        Address: email,
       },
       BillAddr: address,
-    } as const
-    customerQueryCustomers.push(customer)
-  }
-  const customerQueryResult: CustomerQueryResult = {
-    QueryResponse: {
-      Customer: customerQueryCustomers,
-      maxResults: donorCount,
-      startPosition: 0,
-    },
-    time: "2024-02-13T09:35:48.590Z",
-  }
+    })
 
-  const itemTotals = new Array<number>(itemCount).fill(0)
-  const cutsomerSalesReportRows: CustomerSalesReportRow[] = []
-  for (let i = 0; i < donorCount; ++i) {
-    const customer = customers[i]
-    const colData: ColData[] = [{ value: customer.name, id: customer.donorId }]
+    const colData: ColData[] = [{ value: name, id: donorId }]
     let total = 0
+    const donations: (typeof customers)[number]["donations"] = []
     for (let j = 0; j < itemCount; ++j) {
       if (Math.random() > 0.7) {
         colData.push({ value: "0.00", id: "" })
@@ -338,9 +341,11 @@ export function createMockResponses(itemCount: number, donorCount: number) {
       total += balance
       itemTotals[j] += balance
       colData.push({ value: `${balance}.00`, id: "" })
+      donations.push({ name: items[j].name, id: items[j].id, total: balance })
     }
     colData.push({ value: `${total}.00`, id: "" })
     cutsomerSalesReportRows.push({ ColData: colData } satisfies SalesRow)
+    customers.push({ name, email, donorId, donations, total })
   }
   const totalsColData = itemTotals.map(total => ({ value: `${total}.00` }))
   totalsColData.unshift({ value: "TOTAL" })
@@ -352,6 +357,15 @@ export function createMockResponses(itemCount: number, donorCount: number) {
     type: "Section",
   }
   cutsomerSalesReportRows.push(totalRow)
+
+  const customerQueryResult: CustomerQueryResult = {
+    QueryResponse: {
+      Customer: customerQueryCustomers,
+      maxResults: donorCount,
+      startPosition: 0,
+    },
+    time: "2024-02-13T09:35:48.590Z",
+  }
 
   const customerSalesReport: CustomerSalesReport = {
     Header: customerSalesReportHeader,
@@ -367,4 +381,4 @@ export function createMockResponses(itemCount: number, donorCount: number) {
   return { items, customers, itemQueryResponse, customerQueryResult, customerSalesReport }
 }
 
-export const mockResponses = createMockResponses(15, 200)
+export const mockResponses = createMockResponses(15, 30)

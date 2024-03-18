@@ -1,13 +1,12 @@
 import { describe, expect, mock, test } from "bun:test"
 
 import makeChecksum from "checksum"
-import { eq, sql } from "drizzle-orm"
+import { desc, eq, sql } from "drizzle-orm"
 import { NextApiRequest, NextApiResponse } from "next"
 
 import { storageBucket } from "db/dist/firebase"
 import { db, campaigns, doneeInfos, receipts, subscriptions, userDatas } from "db"
 import { getDonations } from "@/lib/qbo-api"
-import { wait } from "utils/dist/etc"
 import { uploadWebpImage } from "utils/dist/image-helper-server"
 import handler, { EmailDataType } from "@/pages/api/email"
 import { createId } from "@paralleldrive/cuid2"
@@ -21,63 +20,52 @@ describe("email", () => {
     const startDate = new Date("2023-01-01")
     const endDate = new Date("2023-12-31")
 
-    const [doneeInfo, userData, subscription] = await Promise.all([
-      (async () => {
-        const img = Bun.file("__tests__/test-files/test.webp")
-        const buf = await img.arrayBuffer()
-        const testImage = await uploadWebpImage(
-          storageBucket,
-          Buffer.from(buf),
-          "test/test.webp",
-          true,
-        )
-        const doneeInfoId = createId()
-        const [doneeInfo] = await db
-          .insert(doneeInfos)
-          .values({
-            id: doneeInfoId,
-            companyAddress: "123 Fake St.",
-            companyName: "Charity",
-            country: "Canada",
-            accountId: account.id,
-            registrationNumber: "123456789RR0001",
-            signatoryName: "John Smith",
-            smallLogo: testImage,
-            largeLogo: testImage,
-            signature: testImage,
-          })
-          .returning()
-        return doneeInfo
-      })(),
-      (async () => {
-        const userDataId = createId()
-        const [userData] = await db
-          .insert(userDatas)
-          .values({
-            accountId: account.id,
-            startDate,
-            endDate,
-            id: userDataId,
-            items: selectedItems.join(","),
-          })
-          .returning()
-        return userData
-      })(),
-      (async () => {
-        const subscriptionId = createId()
-        const [subscription] = await db
-          .insert(subscriptions)
-          .values({
-            id: subscriptionId,
-            currentPeriodEnd: new Date("2050-12-31"),
-            status: "active",
-            currentPeriodStart: new Date("2023-01-01"),
-            userId: user.id,
-            cancelAtPeriodEnd: false,
-          })
-          .returning()
-        return subscription
-      })(),
+    const path = "test/test.webp"
+    const [_, [doneeInfo], [userData], [subscription]] = await Promise.all([
+      storageBucket
+        .file("test/test.webp")
+        .exists()
+        .then(async exists => {
+          if (exists) return
+          const buf = await Bun.file("__tests__/test-files/test.webp").arrayBuffer()
+          await uploadWebpImage(storageBucket, Buffer.from(buf), path, true)
+        }),
+      db
+        .insert(doneeInfos)
+        .values({
+          id: createId(),
+          companyAddress: "123 Fake St.",
+          companyName: "Charity",
+          country: "Canada",
+          accountId: account.id,
+          registrationNumber: "123456789RR0001",
+          signatoryName: "John Smith",
+          smallLogo: path,
+          largeLogo: path,
+          signature: path,
+        })
+        .returning(),
+      db
+        .insert(userDatas)
+        .values({
+          accountId: account.id,
+          startDate,
+          endDate,
+          id: createId(),
+          items: selectedItems.join(","),
+        })
+        .returning(),
+      db
+        .insert(subscriptions)
+        .values({
+          id: createId(),
+          currentPeriodEnd: new Date("2050-12-31"),
+          status: "active",
+          currentPeriodStart: new Date("2023-01-01"),
+          userId: user.id,
+          cancelAtPeriodEnd: false,
+        })
+        .returning(),
     ])
 
     const donations = await getDonations(
@@ -126,17 +114,19 @@ describe("email", () => {
     expect(emailRes.campaignId).toBeDefined()
     expect(status).toHaveBeenCalledWith(200)
 
-    await wait(4000)
-    const count = await db.select({ count: sql<number>`cast(count(*) as integer)` }).from(receipts)
-    console.log({ count })
+    const dbReceipts = await db.query.receipts.findMany()
+    expect(dbReceipts.length).toBe(donations.length)
 
-    await Promise.all([
-      deleteUser(),
-      db.delete(userDatas).where(eq(userDatas.id, userData.id)),
-      db.delete(subscriptions).where(eq(subscriptions.id, subscription.id)),
-      db.delete(doneeInfos).where(eq(doneeInfos.id, doneeInfo.id)),
-      db.delete(campaigns).where(eq(campaigns.id, emailRes.campaignId as any as string)),
-      db.delete(receipts).where(eq(receipts.campaignId, emailRes.campaignId as any as string)),
-    ])
+    for (const donor of donations) {
+      const receipt = dbReceipts.find(receipt => receipt.donorId === donor.donorId)
+      const index = dbReceipts.findIndex(receipt => receipt.donorId === donor.donorId)
+      dbReceipts.splice(index, 1)
+      expect(receipt).toBeDefined()
+      if (!receipt) return
+      expect(receipt.campaignId).toBe(emailRes.campaignId)
+      expect(receipt.donorId).toBe(donor.donorId)
+      expect(receipt.total).toBe(donor.total)
+      expect(receipt.emailStatus).toBe("sent")
+    }
   })
 })

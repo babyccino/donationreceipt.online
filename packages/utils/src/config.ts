@@ -11,7 +11,7 @@ function getVitalEnvVariable(environmentVariable: string): string {
       console.warn(
         `Couldn't find vital environment variable: ${environmentVariable}. The value 'test val' will be used instead.`,
       )
-      return "test val"
+      return "test_val"
     }
     console.error("process.env: ", process.env)
     throw new Error(`Couldn't find vital environment variable: ${environmentVariable}`)

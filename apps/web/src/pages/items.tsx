@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth"
 import { ApiError } from "next/dist/server/api-utils"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/router"
-import { ChangeEventHandler, FormEventHandler, useMemo, useRef, useState } from "react"
+import { ChangeEventHandler, FormEventHandler, useEffect, useMemo, useRef, useState } from "react"
 
 import { Fieldset, Legend, Toggle } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
@@ -100,6 +100,7 @@ export default function Items(serialisedProps: SerialisedProps) {
   const props = useMemo(() => deSerialiseDates({ ...serialisedProps }), [serialisedProps])
   const { items, detailsFilledIn } = props
   const [loading, setLoading] = useState(false)
+  const [showHelper, setShowHelper] = useState(false)
   const router = useRouter()
   const inputRefs = useRef<HTMLInputElement[]>([])
   const formRef = useRef<HTMLFormElement>(null)
@@ -156,6 +157,11 @@ export default function Items(serialisedProps: SerialisedProps) {
     setLoading(true)
 
     const items = getItems()
+    if (items.length === 0) {
+      setLoading(false)
+      setShowHelper(true)
+      return
+    }
     const postData: ItemsApiDataType = { items, dateRange: customDateState }
     await fetchJsonData("/api/items", { method: "POST", body: postData })
 
@@ -165,21 +171,41 @@ export default function Items(serialisedProps: SerialisedProps) {
     })
   }
 
+  const onFormChange: FormEventHandler = () => {
+    const items = getItems()
+    if (items.length > 0) {
+      setLoading(false)
+      setShowHelper(false)
+    }
+  }
+
   return (
     <form
       ref={formRef}
       onSubmit={onSubmit}
+      onChange={onFormChange}
       className="m-auto flex w-full max-w-lg flex-col items-center justify-center space-y-4 p-4"
     >
       <Fieldset>
         <Legend className="mb-3">Selected items</Legend>
-        <Alert
-          color="info"
-          className="mb-4"
-          icon={() => <InformationCircleIcon className="mr-2 h-6 w-6" />}
-        >
-          Make sure to only choose your QuickBooks sales items which qualify as donations
-        </Alert>
+        {showHelper ? (
+          <Alert
+            color="failure"
+            className="mb-4 font-medium"
+            withBorderAccent
+            icon={() => <InformationCircleIcon className="mr-2 h-6 w-6" />}
+          >
+            You must select at least one item
+          </Alert>
+        ) : (
+          <Alert
+            color="info"
+            className="mb-4"
+            icon={() => <InformationCircleIcon className="mr-2 h-6 w-6" />}
+          >
+            Make sure to only choose your QuickBooks sales items which qualify as donations
+          </Alert>
+        )}
         {items.map(({ id, name }) => (
           <Toggle
             key={id}
@@ -215,7 +241,7 @@ export default function Items(serialisedProps: SerialisedProps) {
           <option value={DateRangeType.AllTime}>All time</option>
           <option value={DateRangeType.Custom}>Custom range</option>
         </Select>
-        <p className="mt-2 space-y-1">
+        <div className="mt-2 space-y-1">
           <Label className="mb-2 inline-block">Date Range</Label>
           <DatePicker
             value={customDateState}
@@ -227,7 +253,7 @@ export default function Items(serialisedProps: SerialisedProps) {
               customDateState.endDate,
             )}`}
           /> */}
-        </p>
+        </div>
       </Fieldset>
       <LoadingSubmitButton loading={loading} color="blue">
         {detailsFilledIn ? "Generate Receipts" : "Enter Donee Details"}

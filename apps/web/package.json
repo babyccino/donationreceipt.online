@@ -13,7 +13,7 @@
     "stripe:forward": "stripe listen --forward-to localhost:3000/api/stripe/webhooks",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "bun test __tests__/unit/*",
-    "test:integration": "bun test __tests__/integration/* --preload ./__tests__/integration/setup.ts",
+    "test:integration": "NODE_ENV=test SEND_EMAILS_INTERNAL=true bun test __tests__/integration/* --preload ./__tests__/integration/setup.ts",
     "clean": "rm -rf ./.next"
   },
   "dependencies": {

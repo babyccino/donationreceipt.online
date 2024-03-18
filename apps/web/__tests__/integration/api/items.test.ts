@@ -8,14 +8,6 @@ import handler, { DataType } from "@/pages/api/items"
 import { createUser, getMockApiContext } from "../mocks"
 
 describe("items api route", () => {
-  afterAll(async () => {
-    await db.delete(userDatas)
-  })
-
-  beforeAll(async () => {
-    await db.delete(userDatas)
-  })
-
   test("sets all fields of test user", async () => {
     const { account, session, deleteUser } = await createUser(true)
 
@@ -46,8 +38,6 @@ describe("items api route", () => {
     expect(userData?.items).toBe(items.join(","))
     expect(userData?.startDate?.toISOString()).toBe(body.dateRange.startDate.toISOString())
     expect(userData?.endDate?.toISOString()).toBe(body.dateRange.endDate.toISOString())
-
-    await deleteUser()
   })
 
   test("disconnected user returns 401", async () => {
@@ -71,7 +61,5 @@ describe("items api route", () => {
     )
 
     // expect(res.status).toHaveBeenCalledWith(401)
-
-    await deleteUser()
   })
 })

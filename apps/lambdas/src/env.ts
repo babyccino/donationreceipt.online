@@ -12,5 +12,5 @@ const vitalKeys = [
   "DOMAIN",
   "SES_CONFIG_SET",
 ] as const
-const nonVitalKeys = ["TEST_EMAIL"] as const
+const nonVitalKeys = ["TEST_EMAIL", "NODE_ENV"] as const
 export const config = getConfig({ vitalKeys, nonVitalKeys })

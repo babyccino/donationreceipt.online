@@ -1,4 +1,4 @@
-import { afterAll, beforeAll } from "bun:test"
+import { afterAll, beforeAll, beforeEach } from "bun:test"
 
 import { APIGatewayProxyEvent } from "aws-lambda"
 import { HttpResponse, http } from "msw"
@@ -20,17 +20,31 @@ beforeAll(async () => {
   })
 
   const { items, customerQueryResult, itemQueryResponse, customerSalesReport } = mockResponses
-  console.log("setup items: ", items[0].id)
   const handlers = [
     http.get(queryUrl, ({ request }) => {
       const url = new URL(request.url)
       const query = url.searchParams.get("query")
-      if (query === "select * from Customer MAXRESULTS 1000")
+      if (!query) return HttpResponse.error()
+      if (query.startsWith("select * from Customer")) {
+        console.log(
+          `request received: ${request.url}, sending back mock response: customerQueryResult`,
+        )
         return HttpResponse.json(customerQueryResult)
-      if (query === "select * from Item") return HttpResponse.json(itemQueryResponse)
+      }
+      if (query.startsWith("select * from Item")) {
+        console.log(
+          `request received: ${request.url}, sending back mock response: itemQueryResponse`,
+        )
+        return HttpResponse.json(itemQueryResponse)
+      }
       return HttpResponse.error()
     }),
-    http.get(salesReportUrl, () => HttpResponse.json(customerSalesReport)),
+    http.get(salesReportUrl, ({ request }) => {
+      console.log(
+        `request received: ${request.url}, sending back mock response: customerSalesReport`,
+      )
+      return HttpResponse.json(customerSalesReport)
+    }),
   ]
 
   if (config.sendEmailsInternal !== "true") {
@@ -45,8 +59,10 @@ beforeAll(async () => {
   }
 
   server = setupServer(...handlers)
-  server.listen()
+  server.listen({ onUnhandledRequest: "bypass" })
 })
+
+beforeEach(deleteAll)
 
 afterAll(async () => {
   server?.close()

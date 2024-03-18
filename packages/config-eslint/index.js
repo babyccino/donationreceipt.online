@@ -26,9 +26,4 @@ module.exports = {
     "node_modules/",
     "dist/",
   ],
-  overrides: [
-    {
-      files: ["*.js?(x)", "*.ts?(x)"],
-    },
-  ],
 };

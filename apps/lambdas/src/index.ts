@@ -3,8 +3,9 @@ import { render } from "@react-email/render"
 import { renderToBuffer } from "@react-pdf/renderer"
 import { AWSLambda } from "@sentry/serverless"
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import nodemailer from "nodemailer"
+import Mail from "nodemailer/lib/mailer"
 import { z } from "zod"
 
 import { WithBody } from "components/dist/receipt/email"
@@ -17,10 +18,8 @@ import { config } from "./env"
 
 AWSLambda.init({
   dsn: "https://a7eee9df5205f682427e4adbe29637ea@o4506814407966720.ingest.sentry.io/4506814412947456",
-
-  // We recommend adjusting this value in production, or using tracesSampler
-  // for finer control
   tracesSampleRate: 1.0,
+  environment: config.nodeEnv,
 })
 
 export const templateDonorName = "FULL_NAME"
@@ -116,7 +115,6 @@ export async function sendReceipts(props: EmailWorkerDataType) {
     }
 
     const body = formatEmailBody(emailBody, entry.name)
-    console.log("rendering receipt for", entry.name, "...")
     const receiptBuffer = await renderToBuffer(ReceiptPdfDocument(props))
 
     const html = render(
@@ -141,7 +139,11 @@ export async function sendReceipts(props: EmailWorkerDataType) {
   }
 
   async function sendEmail(entry: DonationWithEmail, receiptBuffer: Buffer, html: string) {
-    console.log("sending email to", entry.email, "...")
+    const headers: Mail.Headers = {
+      "X-DATA-CAMPAIGN-ID": campaignId,
+      "X-DATA-DONOR-ID": entry.donorId,
+    }
+    if (config.sesConfigSet !== "test_val") headers["X-SES-CONFIGURATION-SET"] = config.sesConfigSet
     const awsRes = await transporter.sendMail({
       from: { address: `noreply@${config.domain}`, name: companyName },
       to: entry.email,
@@ -156,36 +158,20 @@ export async function sendReceipts(props: EmailWorkerDataType) {
         logoAttachment,
       ],
       html,
-      headers: {
-        "X-SES-CONFIGURATION-SET": config.sesConfigSet,
-        "X-DATA-CAMPAIGN-ID": campaignId,
-        "X-DATA-DONOR-ID": entry.donorId,
-      },
+      headers,
     })
 
-    const { messageId, rejected } = awsRes
-
-    console.log(
-      "email attempted to",
-      entry.email,
-      "with messageId",
-      messageId,
-      "rejected:",
-      rejected,
-    )
-    delete (awsRes as any).raw
-    console.log("writing to db...")
     const dbInsert = db
       .update(receipts)
       .set({
-        emailStatus: rejected ? "bounced" : "sent",
-        emailId: messageId,
+        emailStatus: "sent",
+        emailId: awsRes.messageId,
       })
       .where(and(eq(receipts.campaignId, campaignId), eq(receipts.donorId, entry.donorId)))
       .run()
 
     dbInserts.push(dbInsert)
-    receiptSentSuccesses.push({ donation: entry, id: messageId })
+    receiptSentSuccesses.push({ donation: entry, id: awsRes.messageId })
   }
 
   // wait for all tasks to be completed
@@ -197,6 +183,10 @@ export async function sendReceipts(props: EmailWorkerDataType) {
         receiptCreationFailures.push(entry.donorId)
       }),
     ),
+  )
+
+  console.log(
+    `sent ${receiptSentSuccesses.length} receipts successfully\n${receiptSentFailures.length} failed to send\n${receiptCreationFailures.length} failed to create\n`,
   )
 
   // if (receiptSentFailures.length > 0) {

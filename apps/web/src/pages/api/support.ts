@@ -5,6 +5,7 @@ import { ApiError } from "next/dist/server/api-utils"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 
+import { config } from "@/lib/env"
 import { regularCharacterRegex } from "@/lib/util/regex"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
 import { db, supportTickets } from "db"
@@ -14,9 +15,6 @@ const sesClient = new aws.SESClient({
   apiVersion: "2010-12-01",
   region: "us-east-2",
 })
-// const emailSendingRate = parseInt(config.emailSendingRate)
-// if (Number.isNaN(emailSendingRate) || emailSendingRate < 0)
-//   throw new Error("emailSendingRate is not a number")
 const transporter = nodemailer.createTransport({
   SES: { ses: sesClient, aws },
   // sendingRate: emailSendingRate === 0 ? undefined : emailSendingRate,
@@ -30,6 +28,8 @@ export const parser = z.object({
   body: z.string().min(5),
 })
 export type DataType = z.infer<typeof parser>
+
+const domain = config.domain.replace("https://", "").replace("http://", "").replace("www.", "")
 
 const handler: AuthorisedHandler = async (req, res, session) => {
   const [row] = await db
@@ -49,8 +49,8 @@ const handler: AuthorisedHandler = async (req, res, session) => {
 
   await Promise.all([
     transporter.sendMail({
-      from: "contact@donationreceipt.online",
-      to: "gus.ryan163@gmail.com",
+      from: `contact@${domain}`,
+      to: config.supportEmail,
       subject: `A user submitted a support ticket: ${data.subject}`,
       replyTo: data.from,
       html: data.body,

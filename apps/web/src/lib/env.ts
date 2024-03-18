@@ -33,6 +33,7 @@ const vitalKeys = [
   "SENTRY_AUTH_TOKEN",
 
   "DOMAIN",
+  "SUPPORT_EMAIL",
   "EMAIL_WEBHOOK_URL",
 ] as const
 const nonVitalKeys = [

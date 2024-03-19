@@ -10,6 +10,7 @@ export namespace sharedStyle {
     margin: "0",
     padding: "0",
     lineHeight: 1.4,
+    whiteSpace: "normal" as const,
   }
 
   export const container = {
@@ -51,16 +52,20 @@ export namespace sharedStyle {
   export const informationTableColumn = {
     paddingLeft: "20px",
     paddingRight: "20px",
+    paddingBottom: "5px",
     borderStyle: "solid" as const,
     borderColor: "white",
     borderWidth: "0px 1px 1px 0px",
-    height: "44px",
+    minHeight: "44px",
+    overflow: "visible",
   }
 
   export const informationTableLabel = {
     ...resetText,
     color: "rgb(102,102,102)",
     fontSize: "10px",
+    minWidth: "0px",
+    overflow: "visible",
     // textTransform: "uppercase",
   }
 
@@ -68,6 +73,8 @@ export namespace sharedStyle {
     fontSize: "12px",
     margin: "0",
     padding: "0",
+    minWidth: "0px",
+    overflow: "visible",
     lineHeight: 1.4,
   }
 

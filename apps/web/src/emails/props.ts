@@ -16,14 +16,46 @@ export const dummyEmailProps: EmailProps = {
         id: "2",
         total: 50,
       },
+      {
+        name: "Product 3",
+        id: "2",
+        total: 50,
+      },
+      {
+        name: "Product 4",
+        id: "2",
+        total: 50,
+      },
+      {
+        name: "Product 5",
+        id: "2",
+        total: 50,
+      },
+      {
+        name: "Product 6",
+        id: "2",
+        total: 50,
+      },
+      {
+        name: "Product 7",
+        id: "2",
+        total: 50,
+      },
+      {
+        name: "Product 8",
+        id: "2",
+        total: 50,
+      },
     ],
-    address: "123 Main St, City, Country",
+    address: "9876 Maple Avenue, Suite 201, Brooklyn Heights, New York, NY 11201, United States",
     email: "test@test.com",
   },
   receiptNo: 98765,
   donee: {
-    companyName: "Non-Profit Organization",
-    companyAddress: "456 Charity Ave, City, Country",
+    companyName:
+      "International Society for Krishna Consciousness (ISKCON Russian-Speaking Toronto)",
+    companyAddress:
+      "9876 Maple Avenue, Suite 201, Brooklyn Heights, New York, NY 11201,  United States",
     country: "Country",
     registrationNumber: "123456789",
     signatoryName: "Jane Smith",

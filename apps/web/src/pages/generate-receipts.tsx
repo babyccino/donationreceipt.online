@@ -19,10 +19,11 @@ import {
 } from "@/lib/auth/next-auth-helper-server"
 import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
-import { dynamic } from "@/lib/util/nextjs-helper"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { dynamic } from "@/lib/util/nextjs-helper"
 import { subscribe } from "@/lib/util/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { Link } from "components/dist/link"
 import {
   DownloadReceiptLoading,
   DummyDownloadReceipt,
@@ -36,7 +37,7 @@ import { Donation } from "types"
 import { getDonationRange, getThisYear } from "utils/dist/date"
 import { downloadImageAndConvertToPng } from "utils/dist/db-helper"
 import { getRandomBalance, getRandomName } from "utils/dist/etc"
-import { fetchJsonData } from "utils/dist/request"
+import { getResponseContent } from "utils/dist/request"
 
 const DownloadReceipt = dynamic(
   () => import("components/dist/receipt/pdf").then(imp => imp.DownloadReceipt),
@@ -60,8 +61,13 @@ function DownloadAllFiles() {
 
   const onClick = async () => {
     setLoading(true)
-    const response = await fetchJsonData("/api/receipts")
-    if (!response.ok) throw new Error("There was an issue downloading the ZIP file")
+    const response = await fetch("/api/receipt")
+    setLoading(false)
+    if (!response.ok) {
+      const content = await getResponseContent(response)
+      const text = typeof content === "string" ? content : JSON.stringify(content)
+      throw new ApiError(response.status, text)
+    }
     setLoading(false)
     download(await response.blob())
   }
@@ -236,10 +242,10 @@ export default function IndexPage(props: Props) {
       {subscribed && (
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <DownloadAllFiles />
-          {/* <div className="mb-4 flex flex-row items-baseline gap-6 rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-4 flex flex-row items-baseline gap-6 rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
             <p className="inline font-normal text-gray-700 dark:text-gray-400">Email your donors</p>
             <Link href="/email">Email</Link>
-          </div> */}
+          </div>
         </div>
       )}
       <Alert

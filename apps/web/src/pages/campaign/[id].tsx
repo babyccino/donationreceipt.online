@@ -14,7 +14,7 @@ import {
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { config } from "@/lib/env"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { EmailStatus, accounts, db, receipts, sessions } from "db"
 
@@ -144,7 +144,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("items")
 
-  const [account, accountList, recipients] = await Promise.all([
+  const [account, recipients, [accountSwitched, accountList]] = await Promise.all([
     db.query.accounts.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: and(
@@ -161,23 +161,21 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
         refreshToken: true,
         refreshTokenExpiresAt: true,
       },
-      with: {
-        userData: { columns: { items: true, startDate: true, endDate: true } },
-        doneeInfo: { columns: { id: true } },
-      },
       orderBy: desc(accounts.updatedAt),
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
     db.query.receipts.findMany({
       where: eq(receipts.campaignId, id),
       columns: { email: true, emailStatus: true, donorId: true },
       orderBy: desc(receipts.email),
     }),
+    getAccountList(session),
   ])
+
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: `campaign/${id}`, permanent: false } }
+  }
+
   if (session.accountId && !account)
     throw new ApiError(500, "account for given user and session not found in db")
 

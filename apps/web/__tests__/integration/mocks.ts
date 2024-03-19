@@ -31,6 +31,7 @@ import {
   verificationTokens,
   db,
 } from "db"
+import { toMs } from "utils/dist/time"
 
 type ResMock = {
   getHeader: () => void
@@ -91,6 +92,7 @@ export function getMockApiContext(
 // }
 
 export async function createUser(connected: boolean) {
+  const threeDaysFromNow = new Date(Date.now() + 3 * toMs.day)
   const userId = createId()
   const accountId = createId()
   const sessionToken = createId()
@@ -98,7 +100,7 @@ export async function createUser(connected: boolean) {
     .insert(sessions)
     .values({
       id: createId(),
-      expires: oneHrFromNow(),
+      expires: threeDaysFromNow,
       sessionToken,
       accountId,
       userId,
@@ -116,17 +118,17 @@ export async function createUser(connected: boolean) {
     .insert(accounts)
     .values({
       id: accountId,
-      provider: "QBO",
-      providerAccountId: "QBO",
+      provider: connected ? "QBO" : "QBO-disconnected",
+      providerAccountId: connected ? "QBO" : "QBO-disconnected",
       type: "oauth",
       userId: userId,
       accessToken: "access-token",
       refreshToken: "refresh-token",
-      refreshTokenExpiresAt: oneHrFromNow(),
-      companyName: "Test Company",
+      refreshTokenExpiresAt: threeDaysFromNow,
+      companyName: connected ? "Test Company" : null,
       scope: connected ? "accounting" : "profile",
       realmId: connected ? testRealmId : null,
-      expiresAt: oneHrFromNow(),
+      expiresAt: threeDaysFromNow,
     })
     .returning()
   const [sessionRes, userRes, accountRes] = await Promise.all([

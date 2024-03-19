@@ -46,6 +46,9 @@ export default function Layout(
 
   const companies = props.companies?.length ? props.companies : undefined
   const otherCompanies = companies?.filter(company => company.id !== props.selectedAccountId)
+  const companyName =
+    companies?.find(company => company.id === props.selectedAccountId)?.companyName ??
+    "Select Company"
 
   useEffect(() => {
     const routeChangeStartCb = () => {
@@ -91,10 +94,7 @@ export default function Layout(
           {companies && (
             <>
               <Companies
-                companyName={
-                  companies.find(company => company.id === props.selectedAccountId)?.companyName ??
-                  ""
-                }
+                companyName={companyName}
                 otherCompanies={otherCompanies}
                 router={router}
               />

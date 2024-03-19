@@ -26,7 +26,7 @@ import {
 import { defaultEmailBody, formatEmailBody, templateDonorName, trimHistoryById } from "@/lib/email"
 import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { SerialiseDates, deSerialiseDates, dynamic, serialiseDates } from "@/lib/util/nextjs-helper"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { EmailDataType } from "@/pages/api/email"
@@ -452,7 +452,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("email")
 
-  const [user, accountList] = await Promise.all([
+  const [user, [accountSwitched, accountList]] = await Promise.all([
     db.query.users.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: eq(users.id, session.user.id),
@@ -491,12 +491,14 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
         },
       },
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
+    getAccountList(session),
   ])
+
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: "/email", permanent: false } }
+  }
+
   if (!user) throw new ApiError(500, "user not found in db")
   let account = user.accounts?.[0] as (typeof user.accounts)[number] | undefined
   if (session.accountId && !account)

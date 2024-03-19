@@ -19,7 +19,7 @@ import {
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getItems } from "@/lib/qbo-api"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nextjs-helper"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DataType as ItemsApiDataType } from "@/pages/api/items"
@@ -268,7 +268,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("items")
 
-  const [account, accountList] = await Promise.all([
+  const [account, [accountSwitched, accountList]] = await Promise.all([
     db.query.accounts.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: and(
@@ -291,12 +291,14 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
       },
       orderBy: desc(accounts.updatedAt),
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
+    getAccountList(session),
   ])
+
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: "/items", permanent: false } }
+  }
+
   if (session.accountId && !account)
     throw new ApiError(500, "account for given user and session not found in db")
 

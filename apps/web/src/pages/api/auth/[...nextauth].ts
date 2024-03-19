@@ -7,16 +7,9 @@ import { config } from "@/lib/env"
 import { OpenIdUserInfo, QBOProfile, QboAccount } from "@/types/qbo-api"
 import { db } from "db"
 import { fetchJsonData } from "utils/dist/request"
+import { toSeconds } from "utils/dist/time"
 
-const {
-  qboClientId,
-  qboClientSecret,
-  qboWellKnown,
-  qboOauthRoute,
-  qboAccountsBaseRoute,
-  nextauthSecret,
-} = config
-const MS_IN_HOUR = 3600000
+const { qboClientId, qboClientSecret, qboWellKnown, qboAccountsBaseRoute, nextauthSecret } = config
 
 export const qboProvider: OAuthConfig<QBOProfile> = {
   id: "QBO",
@@ -89,7 +82,7 @@ export const authOptions: NextAuthOptions = {
   adapter: DrizzleAdapter(db),
   session: {
     strategy: "database",
-    maxAge: 60 * 30,
+    maxAge: 3 * toSeconds.day,
   },
   pages: {
     signIn: "/auth/signin",

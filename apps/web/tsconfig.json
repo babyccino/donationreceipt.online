@@ -1,14 +1,26 @@
 {
   "compilerOptions": {
-    "types": ["bun-types"], // this is necessary
+    "types": [
+      "bun-types"
+    ], // this is necessary
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/tests/*": ["__tests__/*"],
-      "@/public/*": ["public/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@/tests/*": [
+        "__tests__/*"
+      ],
+      "@/public/*": [
+        "public/*"
+      ]
     },
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -24,7 +36,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "noEmit": true
   },
   "include": [
     "next-env.d.ts",
@@ -33,5 +46,7 @@
     "lib/pdfviewer/index.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["**/node_modules"]
+  "exclude": [
+    "**/node_modules"
+  ]
 }

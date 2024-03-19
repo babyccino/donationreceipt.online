@@ -32,6 +32,12 @@ module.exports = {
     ],
   },
   transpilePackages: ["components"],
+  experimental: {
+    outputFileTracingExcludes: {
+      // Avoids including canvas in the trace to avoid 50 Mb+ serverless functions
+      '*': ['../../node_modules/canvas*', 'node_modules/canvas*']
+    }
+  },
 }
 
 // Injected content via Sentry wizard below

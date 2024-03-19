@@ -96,10 +96,6 @@ const PersonalData = () => (
           <li>Your signature</li>
           {/* <li>Usage Data</li> */}
         </Ul>
-        <Alert className="mb-4 sm:text-lg">
-          {companyName} does not store any information specific to your donors (including their
-          names, emails, etc.) nor their donations.
-        </Alert>
         <H3>Information About Your Organisation</H3>
         <P>
           While using Our Service, We may ask You to provide Us with certain information about your
@@ -129,31 +125,6 @@ const PersonalData = () => (
               We may also collect information that Your browser sends whenever You visit our Service or when
               You access the Service by or through a mobile device.
             </P> */}
-        <H3>Tracking Technologies and Cookies</H3>
-        <P>
-          We use Cookies and similar tracking technologies to track the activity on Our Service and
-          store certain information.
-          {/* Tracking technologies used are beacons, tags, and scripts to
-              collect and track information and to improve and analyze Our Service.  */}
-          The technologies We use may include:
-        </P>
-        <Ul>
-          <li>
-            <strong>Cookies or Browser Cookies.</strong> A cookie is a small file placed on Your
-            Device. You can instruct Your browser to refuse all Cookies or to indicate when a Cookie
-            is being sent. However, if You do not accept Cookies, You may not be able to use some
-            parts of our Service. Unless you have adjusted Your browser setting so that it will
-            refuse Cookies, our Service may use Cookies.
-          </li>
-          <li>
-            <strong>Web Beacons.</strong> Certain sections of our Service and our emails may contain
-            small electronic files known as web beacons (also referred to as clear gifs, pixel tags,
-            and single-pixel gifs) that permit the Company, for example, to count users who have
-            visited those pages or opened an email and for other related website statistics (for
-            example, recording the popularity of a certain section and verifying system and server
-            integrity).
-          </li>
-        </Ul>
         <P>
           Cookies can be <Q>Persistent</Q> or <Q>Session</Q> Cookies. Persistent Cookies remain on
           Your personal computer or mobile device when You go offline, while Session Cookies are
@@ -163,12 +134,8 @@ const PersonalData = () => (
           </a>{" "}
           article.
         </P>
-        <P>We use both Session and Persistent Cookies for the purposes set out below:</P>
+        <P>We use Persistent Cookies for the purposes set out below:</P>
         <Purposes />
-        <P>
-          For more information about the cookies we use and your choices regarding cookies, please
-          visit our Cookies Policy or the Cookies section of our Privacy Policy.
-        </P>
       </Content>
     </Panel>
     <Panel>
@@ -196,12 +163,6 @@ const PersonalData = () => (
             notifications regarding updates or informative communications related to the
             functionalities, products or contracted services, including the security updates, when
             necessary or reasonable for their implementation.
-          </li>
-          <li>
-            <strong>To provide You</strong> with news, special offers and general information about
-            other goods, services and events which we offer that are similar to those that you have
-            already purchased or enquired about unless You have opted not to receive such
-            information.
           </li>
           <li>
             <strong>To manage Your requests:</strong> To attend and manage Your requests to Us.

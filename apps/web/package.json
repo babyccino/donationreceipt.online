@@ -22,7 +22,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@react-email/components": "^0.0.12",
     "@react-email/render": "^0.0.7",
-    "@react-pdf/renderer": "^3.1.14",
+    "@react-pdf/renderer": "^3.4.0",
     "@sentry/nextjs": "^7.103.0",
     "better-sqlite3": "^9.2.0",
     "checksum": "^1.0.0",
@@ -83,9 +83,8 @@
     "node:crypto": false,
     "request": false
   },
-  "pnpm": {
-    "patchedDependencies": {
-      "jose@4.15.4": "patches/jose@4.15.4.patch"
-    }
+  "resolutions": {
+    "react-pdf/**/canvas": "link:./node_modules/.cache/null",
+    "pdfjs-dist/canvas": "link:./node_modules/.cache/null"
   }
 }

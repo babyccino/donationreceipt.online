@@ -4,7 +4,6 @@ import { CheckIcon, EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/solid"
 import { Button, Card, ButtonProps as FlowbiteButtonProps, Spinner, Toast } from "flowbite-react"
 import { ToastToggleProps } from "flowbite-react/lib/esm/components/Toast/ToastToggle"
 import { InputHTMLAttributes, ReactNode, useState } from "react"
-import { twMerge } from "tailwind-merge"
 
 import { Link, buttonStyling } from "components/dist/link"
 
@@ -98,7 +97,7 @@ const LoadingButtonInner = ({
   children: ReactNode
   className?: string
 }) => (
-  <div className={twMerge(className, buttonStyling, "relative cursor-wait")}>
+  <div className={`${className} ${buttonStyling} relative cursor-wait`}>
     <div className="absolute left-1/2 -translate-x-1/2">
       <Spinner />
     </div>
@@ -117,7 +116,7 @@ export function LoadingSubmitButton({ loading, children, ...props }: SubmitProps
     return (
       <input
         {...props}
-        className={twMerge(props.className, buttonStyling)}
+        className={`${props.className} ${buttonStyling}`}
         type="submit"
         value={children}
       />

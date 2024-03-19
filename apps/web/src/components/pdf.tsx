@@ -33,10 +33,16 @@ export function ShowReceipt({ receiptProps }: { receiptProps: EmailProps }) {
 
   const receipt = (
     <div
-      className="fixed inset-0 z-40 mr-[-9px] flex flex-row items-center justify-center overflow-y-scroll overscroll-contain bg-black bg-opacity-50"
-      onClick={() => setShow(false)}
+      className="fixed inset-0 z-40 mr-[-9px] flex flex-row justify-center overflow-y-scroll overscroll-contain bg-black bg-opacity-50"
+      onClick={e => {
+        if (e.target === e.currentTarget) setShow(false)
+      }}
     >
-      <div id="pdf" ref={parentRef} className="m-4 w-full max-w-[800px] rounded-md bg-gray-800">
+      <div
+        id="pdf"
+        ref={parentRef}
+        className="z-50 m-4 w-full max-w-[800px] rounded-md bg-gray-800"
+      >
         <div className="flex flex-row justify-end p-2">
           <button
             type="button"

@@ -2,9 +2,9 @@ import {
   Document,
   PDFDownloadLink,
   Page,
-  Image as PdfImage,
-  Link as PdfLink,
-  Text as PdfText,
+  Image,
+  Link,
+  Text,
   StyleSheet,
   View,
 } from "@react-pdf/renderer"
@@ -33,6 +33,8 @@ const styleSheet = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     paddingTop: 10,
+    overflowWrap: "break-word",
+    overflow: "visible",
   },
   productTitle: {
     ...sharedStyle.productTitle,
@@ -72,7 +74,7 @@ const styleSheet = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
   },
 } as any)
-const PdfField = ({
+const Field = ({
   label,
   content,
 }: {
@@ -81,8 +83,8 @@ const PdfField = ({
   align?: "center" | "right" | "left" | "justify" | "char"
 }) => (
   <View style={styleSheet.informationTableColumn}>
-    {label && <PdfText style={styleSheet.informationTableLabel}>{label}</PdfText>}
-    <PdfText style={styleSheet.informationTableValue}>{content}</PdfText>
+    {label && <Text style={styleSheet.informationTableLabel}>{label}</Text>}
+    <Text style={styleSheet.informationTableValue}>{content}</Text>
   </View>
 )
 
@@ -105,43 +107,43 @@ export function ReceiptPdfDocument({
     <Document>
       <Page size="A4" style={styleSheet.container}>
         <View style={styleSheet.headingContainer}>
-          <PdfImage style={styleSheet.smallLogo} src={donee.smallLogo} />
+          <Image style={styleSheet.smallLogo} src={donee.smallLogo} />
 
-          <PdfText style={styleSheet.heading}>Receipt #{receiptNo}</PdfText>
+          <Text style={styleSheet.heading}>Receipt #{receiptNo}</Text>
         </View>
         <View style={styleSheet.informationTable}>
-          <View>
-            <PdfField label="Charitable Registration Number" content={donee.companyName} />
-            <PdfField
+          <View style={{ width: "50%" }}>
+            <Field label="Charity Name" content={donee.companyName} />
+            <Field
               label="Charitable Registration Number"
               content={donee.registrationNumber.toString()}
             />
           </View>
-          <PdfField label={"Address"} content={donee.companyAddress} />
+          <View style={{ width: "50%" }}>
+            <Field label="Address" content={donee.companyAddress} />
+          </View>
         </View>
         <View style={[styleSheet.informationTable, { justifyContent: "space-between" }]}>
           <View>
-            <PdfField label="Donations Received" content={donationDate} />
-            <PdfField label="Location Issued" content={donee.country} />
-            <PdfField label="Receipt Issued" content={formatDate(new Date())} />
+            <Field label="Donations Received" content={donationDate} />
+            <Field label="Location Issued" content={donee.country} />
+            <Field label="Receipt Issued" content={formatDate(new Date())} />
           </View>
           <View style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-            <PdfText
-              style={[styleSheet.text, styleSheet.informationTableValue, { marginRight: 10 }]}
-            >
+            <Text style={[styleSheet.text, styleSheet.informationTableValue, { marginRight: 10 }]}>
               {donee.signatoryName}
-            </PdfText>
-            <PdfImage style={{ height: 100, margin: 10 }} src={donee.signature} />
+            </Text>
+            <Image style={{ height: 100, margin: 10 }} src={donee.signature} />
           </View>
         </View>
         <View style={styleSheet.informationTable}>
           <View>
-            <PdfField label="Donor Name" content={donation.name} />
-            <PdfField label="Address" content={donation.address} />
+            <Field label="Donor Name" content={donation.name} />
+            <Field label="Address" content={donation.address} />
           </View>
         </View>
         <View style={styleSheet.productTitleTable}>
-          <PdfText style={styleSheet.productsTitle}>Donations</PdfText>
+          <Text style={styleSheet.productsTitle}>Donations</Text>
         </View>
         <View>
           {donation.items.map(({ name, total, id }) => (
@@ -150,37 +152,35 @@ export function ReceiptPdfDocument({
               style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}
             >
               <View style={{ paddingLeft: "22px" }}>
-                <PdfText style={styleSheet.productTitle}>{name}</PdfText>
-                <PdfText style={styleSheet.productDescription}>{""}</PdfText>
+                <Text style={styleSheet.productTitle}>{name}</Text>
+                <Text style={styleSheet.productDescription}>{""}</Text>
               </View>
 
               <View style={styleSheet.productPriceWrapper}>
-                <PdfText style={styleSheet.productPrice}>{formatCurrency(total)}</PdfText>
+                <Text style={styleSheet.productPrice}>{formatCurrency(total)}</Text>
               </View>
             </View>
           ))}
         </View>
         <View style={styleSheet.totalContainer}>
-          <PdfText style={styleSheet.productPriceTotal}>Eligible Gift For Tax Purposes</PdfText>
+          <Text style={styleSheet.productPriceTotal}>Eligible Gift For Tax Purposes</Text>
           <View style={styleSheet.productPriceLargeWrapper}>
-            <PdfText style={styleSheet.productPriceLarge}>{formatCurrency(donation.total)}</PdfText>
+            <Text style={styleSheet.productPriceLarge}>{formatCurrency(donation.total)}</Text>
           </View>
         </View>
         <View style={{ marginTop: 20 }}>
-          <PdfImage
+          <Image
             style={[styleSheet.smallLogo, { marginHorizontal: "auto" }]}
             src={donee.smallLogo}
           />
         </View>
-        <PdfText style={styleSheet.footerCopyright}>
+        <Text style={styleSheet.footerCopyright}>
           Official donation receipt for income tax purposes
-        </PdfText>
-        <PdfText style={[styleSheet.footerCopyright, { margin: "10px 0 0 0" }]}>
+        </Text>
+        <Text style={[styleSheet.footerCopyright, { margin: "10px 0 0 0" }]}>
           Canada Revenue Agency:{" "}
-          <PdfLink src="https://www.canada.ca/charities-giving">
-            www.canada.ca/charities-giving
-          </PdfLink>
-        </PdfText>
+          <Link src="https://www.canada.ca/charities-giving">www.canada.ca/charities-giving</Link>
+        </Text>
       </Page>
     </Document>
   )

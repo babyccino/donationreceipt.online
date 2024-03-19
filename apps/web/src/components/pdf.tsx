@@ -13,6 +13,7 @@ import "react-pdf/dist/Page/TextLayer.css"
 
 import { createPortal } from "react-dom"
 import { pdfjs } from "react-pdf"
+import { dummyEmailProps } from "@/emails/props"
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "../../../../node_modules/pdfjs-dist/build/pdf.worker.min.js",
   import.meta.url,
@@ -79,5 +80,30 @@ export function ShowReceipt({ receiptProps }: { receiptProps: EmailProps }) {
       {button}
       {createPortal(receipt, document.body)}
     </>
+  )
+}
+
+export const TestViewReceipt = () => {
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div id="pdf" ref={parentRef} className="z-50 m-4 w-full max-w-[800px] rounded-md bg-gray-800">
+      <BlobProvider document={<ReceiptPdfDocument {...dummyEmailProps} />}>
+        {({ url, loading }) =>
+          loading ? (
+            <Spinner className="relative left-[calc(50%-1.25rem)] top-[calc(50%-1.25rem)] h-10 w-10" />
+          ) : (
+            <Document file={url} loading={loading ? <Spinner className="h-10 w-10" /> : null}>
+              <Page
+                loading={loading ? <Spinner className="h-10 w-10" /> : null}
+                pageNumber={1}
+                error={"Error"}
+                width={parentRef.current?.clientWidth}
+              />
+            </Document>
+          )
+        }
+      </BlobProvider>
+    </div>
   )
 }

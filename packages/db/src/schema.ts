@@ -340,7 +340,7 @@ export const verificationTokens = sqliteTable(
 )
 export type VerificationToken = typeof verificationTokens.$inferSelect
 
-export const products = sqliteTable("verification_tokens", {
+export const products = sqliteTable("products", {
   id: text("id", { length: 191 }).primaryKey().notNull(),
   active: integer("active", { mode: "boolean" }),
   name: text("name"),
@@ -350,7 +350,7 @@ export const products = sqliteTable("verification_tokens", {
 })
 export type Product = typeof products.$inferSelect
 
-export const prices = sqliteTable("verification_tokens", {
+export const prices = sqliteTable("prices", {
   id: text("id", { length: 191 }).primaryKey().notNull(),
   active: integer("active", { mode: "boolean" }),
   unitAmount: integer("unit_amount"),

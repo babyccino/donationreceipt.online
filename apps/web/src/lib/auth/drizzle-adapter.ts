@@ -6,12 +6,11 @@ import { ApiError } from "next/dist/server/api-utils"
 
 import { Schema, accounts, sessions, users, verificationTokens } from "db"
 import { oneHrFromNow } from "utils/dist/date"
+import { toMs } from "utils/dist/time"
 import { getCompanyInfo } from "../qbo-api"
 import { refreshTokenIfNeeded } from "./next-auth-helper-server"
 
-const DEFAULT_QBO_REFRESH_PERIOD_DAYS = 101
-const SECONDS_IN_DAY = 60 * 60 * 24
-const DEFAULT_QBO_REFRESH_PERIOD_MS = DEFAULT_QBO_REFRESH_PERIOD_DAYS * SECONDS_IN_DAY * 1000
+const DEFAULT_QBO_REFRESH_PERIOD = 101 * toMs.day
 
 export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
   async createUser(userData) {
@@ -70,15 +69,11 @@ export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
     if (!account.access_token) throw new ApiError(500, "qbo did not return access code")
 
     const expiresAt =
-      account.expires_at !== undefined ? new Date(account.expires_at * 1000) : oneHrFromNow()
-    const refreshTokenExpiresInSeconds = (account.x_refresh_token_expires_in ??
-      account.refresh_token_expires_in) as number | undefined
-    const refreshTokenExpiresAt = new Date(
-      Date.now() +
-        (refreshTokenExpiresInSeconds !== undefined
-          ? refreshTokenExpiresInSeconds * 1000
-          : DEFAULT_QBO_REFRESH_PERIOD_MS),
-    )
+      account.expires_at !== undefined ? new Date(account.expires_at * toMs.second) : oneHrFromNow()
+    const refreshTokenExpiresMs = account.x_refresh_token_expires_in
+      ? (account.x_refresh_token_expires_in as number) * toMs.second
+      : DEFAULT_QBO_REFRESH_PERIOD
+    const refreshTokenExpiresAt = new Date(Date.now() + refreshTokenExpiresMs)
     const scope = account.provider === "QBO" ? "accounting" : "profile"
     const realmId = (account as any).realmId as string | null | undefined
     if (scope === "accounting" && !realmId)
@@ -165,7 +160,7 @@ export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
       .insert(sessions)
       .values({
         id: createId(),
-        expires: data.expires ?? oneHrFromNow(),
+        expires: data.expires ?? new Date(Date.now() + 3 * toMs.day),
         sessionToken: data.sessionToken,
         userId: data.userId,
         accountId: account.id ?? null,

@@ -5,12 +5,13 @@ import { ApiError } from "next/dist/server/api-utils"
 import { ReceiptPdfDocument } from "components/dist/receipt/pdf"
 import { db, accounts, campaigns } from "db"
 import { storageBucket } from "db/dist/firebase"
-import { downloadImagesForDonee } from "utils/dist/db-helper"
+import { bufferToPngDataUrl, downloadImagesForDonee } from "utils/dist/db-helper"
 import { refreshTokenIfNeeded } from "@/lib/auth/next-auth-helper-server"
 import { getDonations } from "@/lib/qbo-api"
 import { getDonationRange, getThisYear } from "utils/dist/date"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
 import { renderToBuffer } from "@react-pdf/renderer"
+import { dataUrlToBase64 } from "utils/dist/image-helper"
 
 const handler: AuthorisedHandler = async (req, res, session) => {
   if (!session.accountId) throw new ApiError(401, "user not connected")
@@ -70,7 +71,18 @@ const handler: AuthorisedHandler = async (req, res, session) => {
       { startDate: userData.startDate, endDate: userData.endDate },
       userData.items ? userData.items.split(",") : [],
     ),
-    downloadImagesForDonee(doneeInfo, storageBucket),
+    (async () => {
+      const { signature, smallLogo } = await downloadImagesForDonee(doneeInfo, storageBucket)
+      const signatureBuffer = Buffer.from(dataUrlToBase64(signature), "base64")
+      const smallLogoBuffer = Buffer.from(dataUrlToBase64(smallLogo), "base64")
+      const [signaturePng, smallLogoPng] = await Promise.all([
+        bufferToPngDataUrl(signatureBuffer),
+        bufferToPngDataUrl(smallLogoBuffer),
+      ])
+      doneeInfo.signature = signaturePng
+      doneeInfo.smallLogo = smallLogoPng
+      return doneeInfo
+    })(),
   ])
 
   if (counterQuery.length !== 1) throw new ApiError(500, "counter query returned more than one row")

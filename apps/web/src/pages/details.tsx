@@ -8,7 +8,7 @@ import { FormEventHandler, useRef, useState } from "react"
 
 import { Fieldset, ImageInput, Legend } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
-import { LoadingButton, LoadingSubmitButton } from "@/components/ui"
+import { LoadingSubmitButton } from "@/components/ui"
 import {
   AccountStatus,
   disconnectedRedirect,
@@ -90,10 +90,11 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
     <form ref={formRef} onSubmit={onSubmit} className="w-full max-w-2xl space-y-4 p-4">
       <Fieldset className="grid gap-4 sm:grid-cols-2 sm:gap-6">
         <Legend className="sm:col-span-2">Organisation</Legend>
-        <p className="sm:col-span-2">
+        <div className="sm:col-span-2">
           <Label className="mb-2 inline-block" htmlFor="companyAddress">
             Address
           </Label>
+          {/* TODO use text area + multi-line strings? */}
           <TextInput
             name="companyAddress"
             id="companyAddress"
@@ -103,8 +104,8 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
             title={regularCharacterHelper}
             pattern={htmlRegularCharactersRegexString}
           />
-        </p>
-        <p>
+        </div>
+        <div>
           <Label className="mb-2 inline-block" htmlFor="companyName">
             Legal name
           </Label>
@@ -116,8 +117,8 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
             title={regularCharacterHelper}
             pattern={htmlRegularCharactersRegexString}
           />
-        </p>
-        <p>
+        </div>
+        <div>
           <Label className="mb-2 inline-block" htmlFor="country">
             Country
           </Label>
@@ -130,8 +131,8 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
             title={regularCharacterHelper}
             pattern={htmlRegularCharactersRegexString}
           />
-        </p>
-        <p>
+        </div>
+        <div>
           <Label className="mb-2 inline-block" htmlFor="registrationNumber">
             Charity registration number
           </Label>
@@ -144,8 +145,8 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
             title="Canadian registration numbers are of the format: 123456789AA1234"
             pattern={charityRegistrationNumberRegexString}
           />
-        </p>
-        <p>
+        </div>
+        <div>
           <Label className="mb-2 inline-block" htmlFor="signatoryName">
             Signatory{"'"}s name
           </Label>
@@ -158,7 +159,7 @@ export default function Details({ doneeInfo, itemsFilledIn }: Props) {
             title={regularCharacterHelper}
             pattern={htmlRegularCharactersRegexString}
           />
-        </p>
+        </div>
         <ImageInput
           id="signature"
           label="Image of signatory's signature"

@@ -29,7 +29,7 @@ const _Toggle = (
   { className, id, defaultChecked, label, onChange, disabled, size }: ToggleProps,
   ref: ForwardedRef<HTMLInputElement>,
 ) => (
-  <p className={className}>
+  <div className={className}>
     <label
       htmlFor={id.toString()}
       className={twMerge(
@@ -66,7 +66,7 @@ const _Toggle = (
         {label}
       </span>
     </label>
-  </p>
+  </div>
 )
 export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(_Toggle)
 
@@ -91,7 +91,7 @@ export const TextArea = ({
   required?: boolean
   onChange?: ChangeEventHandler<HTMLTextAreaElement>
 }) => (
-  <p className={className}>
+  <div className={className}>
     <Label className="mb-2 inline-block" htmlFor={id}>
       {label}
     </Label>
@@ -105,7 +105,7 @@ export const TextArea = ({
       required={required}
       onChange={onChange}
     />
-  </p>
+  </div>
 )
 
 export const Legend = ({ children, className }: HTMLAttributes<HTMLLegendElement>) => (
@@ -160,7 +160,7 @@ export function ImageInput({
   }
 
   return (
-    <p>
+    <div>
       <Label className="mb-2 inline-block" htmlFor={id}>
         {label}
       </Label>
@@ -172,6 +172,6 @@ export function ImageInput({
         color={error ? "failure" : undefined}
         helperText={helper}
       />
-    </p>
+    </div>
   )
 }

@@ -112,6 +112,7 @@ export async function createUser(connected: boolean) {
       id: userId,
       email: Math.round(Math.random() * Math.pow(10, 15)) + "@gmail.com",
       name: "Test User",
+      country: "ca",
     })
     .returning()
   const accountPromise = db

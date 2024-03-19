@@ -8,6 +8,7 @@ import { OpenIdUserInfo, QBOProfile, QboAccount } from "@/types/qbo-api"
 import { db } from "db"
 import { fetchJsonData } from "utils/dist/request"
 import { toSeconds } from "utils/dist/time"
+import { AdapterUser } from "next-auth/adapters"
 
 const { qboClientId, qboClientSecret, qboWellKnown, qboAccountsBaseRoute, nextauthSecret } = config
 
@@ -60,8 +61,10 @@ const signIn: QboCallbacksOptions["signIn"] = async ({ user, account, profile })
 
   if (!userInfo.emailVerified) return "/terms/email-verified"
 
+  // this is passed to the profile object in the adapter cos nextauth? ¯\_(ツ)_/¯
   user.email = email
   user.name ??= name
+  ;(user as AdapterUser).country = userInfo.address.country
 
   return true
 }

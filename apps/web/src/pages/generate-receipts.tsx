@@ -330,42 +330,6 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
   if (session.accountId && !account)
     throw new ApiError(500, "account for given user and session not found in db")
 
-  // if the session does not specify an account but there is a connected account
-  // then the session is connected to one of these accounts
-  if (session.accountId === null && accountList.length > 0) {
-    session.accountId = accountList[0].id
-    const [_, newAccount] = await Promise.all([
-      db
-        .update(sessions)
-        .set({ accountId: accountList[0].id })
-        .where(eq(sessions.userId, session.user.id)),
-      db.query.accounts.findFirst({
-        where: and(eq(accounts.userId, session.user.id), eq(accounts.id, session.accountId)),
-        columns: {
-          id: true,
-          accessToken: true,
-          scope: true,
-          realmId: true,
-          createdAt: true,
-          expiresAt: true,
-          refreshToken: true,
-          refreshTokenExpiresAt: true,
-        },
-        with: {
-          doneeInfo: {
-            columns: { createdAt: false, updatedAt: false, id: false, accountId: false },
-          },
-          userData: { columns: { items: true, startDate: true, endDate: true } },
-          user: {
-            columns: {},
-            with: { subscription: { columns: { status: true, currentPeriodEnd: true } } },
-          },
-        },
-      }),
-    ])
-    account = newAccount
-  }
-
   if (
     !account ||
     account.scope !== "accounting" ||

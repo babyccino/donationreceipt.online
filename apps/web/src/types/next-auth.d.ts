@@ -31,4 +31,8 @@ declare module "next-auth/adapters" {
   interface AdapterAccount {
     id?: string | null
   }
+
+  interface AdapterUser {
+    country?: string | null
+  }
 }

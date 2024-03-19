@@ -18,13 +18,13 @@ const timestamp = (name: string) =>
     .default(sql`(cast(strftime('%s', 'now') as int) * 1000)`)
     .notNull()
 
-function stringEnum<TData extends string>(name: string) {
+function stringEnum<TData extends string>(fieldName: string) {
   return customType<{
     data: TData
     driverData: string
   }>({
     dataType: config => "text",
-  })(name)
+  })(fieldName)
 }
 
 const metadata = customType<{
@@ -42,6 +42,7 @@ export const users = sqliteTable(
     id: text("id", { length: 191 }).primaryKey().notNull(),
     name: text("name", { length: 191 }),
     email: text("email", { length: 191 }).notNull(),
+    country: stringEnum<"us" | "ca" | "au" | "gb">("country").notNull(),
     emailVerified: timestamp("emailVerified"),
     image: text("image", { length: 191 }),
     createdAt: timestamp("created_at"),

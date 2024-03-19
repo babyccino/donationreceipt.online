@@ -1,7 +1,7 @@
 import { XMarkIcon } from "@heroicons/react/24/solid"
 import { BlobProvider } from "@react-pdf/renderer"
 import { Button, Spinner } from "flowbite-react"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Document, Page } from "react-pdf"
 
 import { ReceiptPdfDocument } from "components/dist/receipt/pdf"
@@ -11,8 +11,8 @@ import { EmailProps } from "components/dist/receipt/types"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
 
-import { pdfjs } from "react-pdf"
 import { createPortal } from "react-dom"
+import { pdfjs } from "react-pdf"
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "../../../../node_modules/pdfjs-dist/build/pdf.worker.min.js",
   import.meta.url,

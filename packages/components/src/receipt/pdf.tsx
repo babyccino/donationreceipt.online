@@ -1,8 +1,6 @@
-import { XMarkIcon } from "@heroicons/react/24/solid"
 import {
   Document,
   PDFDownloadLink,
-  PDFViewer,
   Page,
   Image as PdfImage,
   Link as PdfLink,
@@ -10,12 +8,10 @@ import {
   StyleSheet,
   View,
 } from "@react-pdf/renderer"
-import { Button } from "flowbite-react"
-import { useState } from "react"
 
 import { formatDate } from "utils/dist/date"
 import { buttonStyling } from "../link"
-import { downloadReceiptInner, downloadReceiptLoadingInner, showReceiptInner } from "./pdf-dumb"
+import { downloadReceiptInner, downloadReceiptLoadingInner } from "./pdf-dumb"
 import { sharedStyle } from "./sharedStyle"
 import { EmailProps } from "./types"
 
@@ -205,32 +201,3 @@ export const DownloadReceipt = ({
     {({ loading }) => (loading ? downloadReceiptLoadingInner : downloadReceiptInner)}
   </PDFDownloadLink>
 )
-
-export function ShowReceipt({ receiptProps }: { receiptProps: EmailProps }) {
-  const [show, setShow] = useState(false)
-
-  const containerClass =
-    (show ? "flex" : "hidden") + " fixed inset-0 p-4 justify-center bg-black bg-opacity-50 z-40"
-  return (
-    <>
-      <Button onClick={() => setShow(true)} color="blue">
-        {showReceiptInner}
-      </Button>
-      <div className={containerClass} onClick={() => setShow(false)}>
-        <div className="relative h-full w-full max-w-[800px] rounded-md bg-[#323639] pt-6">
-          <PDFViewer style={{ width: "100%", height: "100%", maxWidth: "800px" }}>
-            <ReceiptPdfDocument {...receiptProps} />
-          </PDFViewer>
-          <button
-            type="button"
-            className="absolute right-1 top-1 ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
-            onClick={() => setShow(false)}
-          >
-            <XMarkIcon className="w-6" />
-            <span className="sr-only">Close modal</span>
-          </button>
-        </div>
-      </div>
-    </>
-  )
-}

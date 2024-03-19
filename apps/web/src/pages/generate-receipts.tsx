@@ -5,6 +5,7 @@ import { Alert, Card } from "flowbite-react"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import { ApiError } from "next/dist/server/api-utils"
+import dynamic from "next/dynamic"
 import React, { ReactNode, useState } from "react"
 import { twMerge } from "tailwind-merge"
 
@@ -20,7 +21,6 @@ import {
 import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
 import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
-import { dynamic } from "@/lib/util/nextjs-helper"
 import { subscribe } from "@/lib/util/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { Link } from "components/dist/link"
@@ -44,13 +44,11 @@ const DownloadReceipt = dynamic(
   {
     loading: DownloadReceiptLoading,
     ssr: false,
-    loadImmediately: true,
   },
 )
 const ShowReceipt = dynamic(() => import("../components/pdf").then(imp => imp.ShowReceipt), {
   loading: ShowReceiptLoading,
   ssr: false,
-  loadImmediately: true,
 })
 
 function DownloadAllFiles() {

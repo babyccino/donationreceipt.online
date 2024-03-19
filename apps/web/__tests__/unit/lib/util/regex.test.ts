@@ -10,20 +10,26 @@ describe("regularCharacterRegex", () => {
     expect(regularCharacterRegex.test("Comma,Separated")).toBe(true)
     expect(regularCharacterRegex.test("Ampersand&Character")).toBe(true)
     expect(regularCharacterRegex.test("Hash#Tag")).toBe(true)
-    expect(regularCharacterRegex.test("Semicolon;Separated")).toBe(true)
     expect(regularCharacterRegex.test("Mixed@Characters")).toBe(true)
     expect(regularCharacterRegex.test("Combination-&@#")).toBe(true)
     expect(regularCharacterRegex.test("Testing with Spaces, @ and #")).toBe(true)
     expect(regularCharacterRegex.test("123 Fake St, Company-ave")).toBe(true)
+    expect(regularCharacterRegex.test("Parenthesis(allowed)")).toBe(true)
+    expect(regularCharacterRegex.test("Square[Bracket]")).toBe(true)
+    expect(regularCharacterRegex.test("Colon:Allowed")).toBe(true)
+    // a combination of all the above
+    expect(
+      regularCharacterRegex.test(
+        "AlphaNumeric123-Special-Character Space Separated,Comma,Separated Ampersand&Character Hash#Tag Mixed@Characters Combination-&@# Testing with Spaces, @ and # 123 Fake St, Company-ave Parenthesis(allowed) Square[Bracket] Colon:Allowed",
+      ),
+    ).toBe(true)
   })
 
   test("returns false for invalid strings", () => {
+    expect(regularCharacterRegex.test("Semicolon;Separated")).toBe(false)
     expect(regularCharacterRegex.test("Invalid*Character")).toBe(false)
     expect(regularCharacterRegex.test("Dot.Character")).toBe(false)
-    expect(regularCharacterRegex.test("Parenthesis(NotAllowed)")).toBe(false)
-    expect(regularCharacterRegex.test("Square[Bracket]")).toBe(false)
     expect(regularCharacterRegex.test("Curly{Braces}")).toBe(false)
-    expect(regularCharacterRegex.test("Colon:NotAccepted")).toBe(false)
     expect(regularCharacterRegex.test("Backslash\\Character")).toBe(false)
     expect(regularCharacterRegex.test("Exclamation!Mark")).toBe(false)
     expect(regularCharacterRegex.test("Plus+Sign")).toBe(false)

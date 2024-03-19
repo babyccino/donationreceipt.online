@@ -47,14 +47,11 @@ const DownloadReceipt = dynamic(
     loadImmediately: true,
   },
 )
-const ShowReceipt = dynamic(
-  () => import("components/dist/receipt/pdf").then(imp => imp.ShowReceipt),
-  {
-    loading: ShowReceiptLoading,
-    ssr: false,
-    loadImmediately: true,
-  },
-)
+const ShowReceipt = dynamic(() => import("../components/pdf").then(imp => imp.ShowReceipt), {
+  loading: ShowReceiptLoading,
+  ssr: false,
+  loadImmediately: true,
+})
 
 function DownloadAllFiles() {
   const [loading, setLoading] = useState(false)

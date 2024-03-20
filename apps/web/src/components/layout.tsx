@@ -98,10 +98,7 @@ export default function Layout(
                 otherCompanies={otherCompanies}
                 router={router}
               />
-              <hr
-                style={{ margin: "1rem 0" }}
-                className="border-t border-gray-200 dark:border-gray-700"
-              />
+              <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
             </>
           )}
           <ul className="h-full space-y-2 font-medium">
@@ -113,10 +110,7 @@ export default function Layout(
                 <NavLink link="/generate-receipts" logo={<TableCellsIcon />} label="Receipts" />
                 <NavLink link="/email" logo={<EnvelopeIcon />} label="Email" />
                 <NavLink link="/account" logo={<UserCircleIcon />} label="Account" />
-                <hr
-                  style={{ margin: "1rem 0" }}
-                  className="border-t border-gray-200 dark:border-gray-700"
-                />
+                <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
               </>
             )}
 
@@ -149,10 +143,7 @@ export default function Layout(
               />
             )}
 
-            <hr
-              style={{ margin: "1rem 0" }}
-              className="border-t border-gray-200 dark:border-gray-700"
-            />
+            <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
 
             <NavLink link="/info" logo={<InformationCircleIcon />} label="Info" />
             <NavLink link="/terms/terms" logo={<GlobeAltIcon />} label="Terms and Conditions" />
@@ -191,14 +182,14 @@ const Companies = ({
       className="flex w-full flex-col items-center text-base text-gray-900"
       aria-controls="open-companies-dropdown"
     >
-      <div className="group/activecompany relative flex w-full flex-1 flex-nowrap items-center justify-between overflow-hidden rounded-lg p-2 text-left transition duration-75 hover:bg-gray-100 rtl:text-right dark:text-white dark:hover:bg-gray-700">
+      <div className="group/activecompany relative flex w-full flex-1 flex-nowrap items-center justify-between overflow-hidden rounded-lg p-2 text-left transition duration-100 hover:bg-gray-100 rtl:text-right dark:text-white dark:hover:bg-gray-700">
         <div className="flex flex-shrink flex-row items-center whitespace-nowrap">
-          <div className="h-6 w-6 text-gray-500 transition duration-75 group-hover/activecompany:text-gray-900 dark:text-gray-400 dark:group-hover/activecompany:text-white">
+          <div className="h-6 w-6 text-gray-500 transition duration-100 group-hover/activecompany:text-gray-900 dark:text-gray-400 dark:group-hover/activecompany:text-white">
             <BuildingOfficeIcon />
           </div>
           <span className="ml-3 flex-1 whitespace-nowrap">{companyName}</span>
         </div>
-        <div className="absolute right-0 inline-block bg-gray-50 pl-1 text-gray-500 transition duration-75 group-hover/activecompany:bg-gray-100 dark:bg-gray-800 dark:text-white dark:group-hover/activecompany:bg-gray-700">
+        <div className="absolute right-0 inline-block bg-gray-50 pl-1 text-gray-500 transition duration-100 group-hover/activecompany:bg-gray-100 dark:bg-gray-800 dark:text-white dark:group-hover/activecompany:bg-gray-700">
           <ChevronDownIcon className=" h-5 w-5" stroke="currentColor" strokeWidth={2} />
         </div>
       </div>
@@ -219,7 +210,7 @@ const Companies = ({
               if (res.redirect) router.push(res.destination)
               else router.replace(router.asPath)
             }}
-            className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+            className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
           >
             {companyName}
           </button>
@@ -230,7 +221,7 @@ const Companies = ({
           className="group flex w-full items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
           onClick={() => signIn("QBO")}
         >
-          <div className="h-6 w-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
+          <div className="h-6 w-6 text-gray-500 transition duration-100 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
             <PlusSmallIcon />
           </div>
           <span className="ml-3 flex-1 whitespace-nowrap text-left">Add Account</span>
@@ -256,7 +247,7 @@ const NavLink = ({
   <li>
     <Link
       href={link}
-      className="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+      className="group flex items-center rounded-lg p-2 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
     >
       <NavItemInner {...props} />
     </Link>
@@ -274,7 +265,7 @@ const NavAnchor = ({
     <a
       href={href}
       onClick={onClick}
-      className="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+      className="group flex items-center rounded-lg p-2 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
     >
       <NavItemInner {...props} />
     </a>
@@ -282,10 +273,10 @@ const NavAnchor = ({
 )
 const NavItemInner = ({ logo, label, notification, extra }: NavInnerProps) => (
   <>
-    <div className="h-6 w-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
+    <div className="h-5 w-5 text-gray-500 transition duration-100 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
       {logo}
     </div>
-    <span className="ml-3 flex-1 whitespace-nowrap">{label}</span>
+    <span className="ml-3 flex-1 whitespace-nowrap text-base">{label}</span>
     {notification ? (
       <span className="ml-3 inline-flex h-3 w-3 items-center justify-center rounded-full bg-blue-100 p-3 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-300">
         {notification}

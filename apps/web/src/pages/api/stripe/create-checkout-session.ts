@@ -6,21 +6,15 @@ import { config } from "@/lib/env"
 import { isUserSubscribed, stripe } from "@/lib/stripe"
 import { getBaseUrl } from "@/lib/util/request"
 import { AuthorisedHandler, createAuthorisedHandler } from "@/lib/util/request-server"
-import { db, subscriptions, users } from "db"
+import { db, users } from "db"
 import { parseRequestBody } from "utils/dist/request"
+import { getCurrency } from "@/lib/intl"
 
 export const parser = z.object({
   redirect: z.string().optional(),
   metadata: z.record(z.string(), z.any()).default({}),
 })
 export type DataType = z.input<typeof parser>
-
-function getCurrency(country: string) {
-  if (country === "gb") return "gbp"
-  if (country === "ca") return "cad"
-  if (country === "au") return "aud"
-  return "usd"
-}
 
 const handler: AuthorisedHandler = async ({ body }, res, session) => {
   const data = parseRequestBody(parser, body)

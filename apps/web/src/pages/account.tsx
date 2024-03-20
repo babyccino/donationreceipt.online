@@ -25,6 +25,7 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DisconnectBody } from "@/pages/api/auth/disconnect"
 import { DataType } from "@/pages/api/stripe/update-subscription"
 import { config } from "@/lib/env"
+import { SupportedCurrencies, getCurrency } from "@/lib/intl"
 
 type Subscription = Pick<
   DbSubscription,
@@ -37,6 +38,7 @@ type Props = ({
   companyName: string | null
   connected: boolean
   realmId: string | null
+  currency: SupportedCurrencies
 } & (
   | { subscribed: false }
   | {
@@ -174,11 +176,13 @@ export default function AccountPage(serialisedProps: SerialisedProps) {
                   subscribe("/account")
                 }}
                 color="blue"
+                className="transition duration-100"
               >
                 Go pro
               </LoadingButton>
             ) : undefined
           }
+          currency={props.currency}
         />
       </div>
       <div className="pt-8 text-white sm:p-14">
@@ -206,7 +210,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     db.query.users.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: eq(users.id, session.user.id),
-      columns: { name: true },
+      columns: { name: true, country: true },
       with: {
         accounts: {
           where: session.accountId
@@ -280,6 +284,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
         realmId,
         companies: accountList,
         selectedAccountId,
+        currency: getCurrency(user.country),
       } satisfies Props),
     }
   }
@@ -294,6 +299,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
       realmId,
       companies: accountList,
       selectedAccountId,
+      currency: getCurrency(user.country),
     } satisfies SerialisedProps,
   }
 }

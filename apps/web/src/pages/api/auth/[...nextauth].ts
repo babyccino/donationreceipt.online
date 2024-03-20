@@ -75,6 +75,7 @@ const session: QboCallbacksOptions["session"] = async ({ session, user }) => {
       id: user.id ?? session.user.id,
       name: user.name ?? session.user.name,
       email: user.email ?? session.user.email,
+      country: (user as AdapterUser).country ?? session.user.country ?? null,
     },
     accountId: session.accountId,
     expires: (session.expires as unknown as Date).toISOString(),

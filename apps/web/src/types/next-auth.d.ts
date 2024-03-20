@@ -12,6 +12,7 @@ declare module "next-auth" {
       id: string
       name: string
       email: string
+      country: string | null
     }
     accountId: string | null
   }

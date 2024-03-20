@@ -16,8 +16,8 @@ export const parser = z.object({
 })
 export type DataType = z.input<typeof parser>
 
-const handler: AuthorisedHandler = async ({ body }, res, session) => {
-  const data = parseRequestBody(parser, body)
+const handler: AuthorisedHandler = async (req, res, session) => {
+  const data = parseRequestBody(parser, req.body)
   const { metadata, redirect } = data
 
   const user = await db.query.users.findFirst({
@@ -45,7 +45,7 @@ const handler: AuthorisedHandler = async ({ body }, res, session) => {
       metadata: { ...metadata, clientId: session.user.id },
     },
     success_url: `${getBaseUrl()}/${redirect || ""}`,
-    cancel_url: `${getBaseUrl()}/`,
+    cancel_url: `${getBaseUrl()}/account`,
     allow_promotion_codes: true,
     currency: getCurrency(user.country),
   })

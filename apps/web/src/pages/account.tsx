@@ -148,7 +148,7 @@ function ProfileCard({
           Disconnect
         </Button>
       ) : (
-        <button className="flex-shrink self-center" onClick={e => void signIn("QBO")}>
+        <button className="flex-shrink self-center" onClick={_ => void signIn("QBO")}>
           <Connect />
         </button>
       )}

@@ -22,10 +22,13 @@ import { signIn, signOut } from "next-auth/react"
 import Link from "next/link"
 import { NextRouter, useRouter } from "next/router"
 import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
+import { Dropdown } from "flowbite-react"
 
 import { subscribe } from "@/lib/util/request"
-import { DataType } from "@/pages/api/switch-company"
+import { DataType as SwitchCompanyDataType } from "@/pages/api/switch-company"
+import { DataType as SwitchCountryDataType } from "@/pages/api/switch-country"
 import { fetchJsonData } from "utils/dist/request"
+import { SupportedCountries, getCountryFlag, supportedCountries } from "@/lib/intl"
 
 export type LayoutProps = {
   session: Session | null
@@ -49,6 +52,7 @@ export default function Layout(
   const companyName =
     companies?.find(company => company.id === props.selectedAccountId)?.companyName ??
     "Select Company"
+  const country = session?.user.country as SupportedCountries | undefined
 
   useEffect(() => {
     const routeChangeStartCb = () => {
@@ -86,7 +90,6 @@ export default function Layout(
           id="separator-sidebar"
           className={
             "fixed left-0 top-0 z-40 flex h-screen w-64 flex-col justify-between overflow-y-auto bg-gray-50 px-3 py-4 transition-transform sm:translate-x-0 dark:bg-gray-800 " +
-            "fixed left-0 top-0 z-40 flex h-screen w-64 flex-col justify-between overflow-y-auto bg-gray-50 px-3 py-4 transition-transform sm:translate-x-0 dark:bg-gray-800 " +
             (showSidebar ? "" : " -translate-x-full")
           }
           aria-label="Sidebar"
@@ -101,7 +104,7 @@ export default function Layout(
               <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
             </>
           )}
-          <ul className="h-full space-y-2 font-medium">
+          <ul className="space-y-2 font-medium">
             {user && (
               <>
                 <NavLink link="/" logo={<RectangleGroupIcon />} label="Dashboard" />
@@ -152,6 +155,11 @@ export default function Layout(
               <NavLink link="/support" logo={<ChatBubbleLeftEllipsisIcon />} label="Support" />
             )}
           </ul>
+          {country && (
+            <div className="mt-auto p-2 pt-6 text-right">
+              <SwitchCountry currentCountry={country} router={router} />
+            </div>
+          )}
         </nav>
       </header>
       <div className="hidden w-64 sm:block" />
@@ -166,6 +174,37 @@ export default function Layout(
     </div>
   )
 }
+
+const SwitchCountry = ({
+  currentCountry,
+  router,
+}: {
+  currentCountry: SupportedCountries
+  router: NextRouter
+}) => (
+  <Dropdown
+    label={<span className="text-2xl">{getCountryFlag(currentCountry)}</span>}
+    placement="top"
+    color="dark"
+  >
+    {supportedCountries
+      .filter(supportedCountry => supportedCountry !== currentCountry)
+      .map(supportedCountry => (
+        <Dropdown.Item
+          key={supportedCountry}
+          onClick={async () => {
+            const res = await fetchJsonData("/api/switch-country", {
+              method: "POST",
+              body: { country: supportedCountry } satisfies SwitchCountryDataType,
+            })
+            router.replace(router.asPath)
+          }}
+        >
+          {getCountryFlag(supportedCountry)} {supportedCountry.toUpperCase()}
+        </Dropdown.Item>
+      ))}
+  </Dropdown>
+)
 
 const Companies = ({
   companyName,
@@ -204,7 +243,7 @@ const Companies = ({
             onClick={async () => {
               const res = await fetchJsonData("/api/switch-company", {
                 method: "POST",
-                body: { accountId } satisfies DataType,
+                body: { accountId } satisfies SwitchCompanyDataType,
               })
 
               if (res.redirect) router.push(res.destination)

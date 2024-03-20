@@ -1,3 +1,4 @@
+export const supportedCountries = ["us", "ca", "gb", "au"] as const
 export type SupportedCountries = "us" | "ca" | "gb" | "au"
 export type SupportedCurrencies = "usd" | "cad" | "gbp" | "aud"
 
@@ -36,5 +37,18 @@ export function getCurrencySymbol(currency: SupportedCurrencies) {
     case "cad":
     case "aud":
       return "$"
+  }
+}
+
+export function getCountryFlag(country: SupportedCountries) {
+  switch (country) {
+    case "us":
+      return "🇺🇸"
+    case "ca":
+      return "🇨🇦"
+    case "gb":
+      return "🇬🇧"
+    case "au":
+      return "🇦🇺"
   }
 }

@@ -1,13 +1,13 @@
 import { BriefcaseIcon, MapPinIcon } from "@heroicons/react/24/solid"
 import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { Button, Card } from "flowbite-react"
+import { Button, Card, Spinner } from "flowbite-react"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import { signIn } from "next-auth/react"
 import { ApiError } from "next/dist/server/api-utils"
 import Image from "next/image"
 import { useRouter } from "next/router"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import { LayoutProps } from "@/components/layout"
 import { Connect } from "@/components/qbo"
@@ -132,8 +132,9 @@ function ProfileCard({
         </>
       )}
       {connected ? (
-        <Button
+        <LoadingButton
           // this is the only colour which seems to work other than "blue" and I can't be bothered to fix it
+          loadingImmediately
           color="dark"
           className="flex-shrink"
           onClick={async () => {
@@ -146,13 +147,38 @@ function ProfileCard({
           }}
         >
           Disconnect
-        </Button>
+        </LoadingButton>
       ) : (
-        <button className="flex-shrink self-center" onClick={_ => void signIn("QBO")}>
-          <Connect />
-        </button>
+        <ConnectButton />
       )}
     </Card>
+  )
+}
+
+function ConnectButton() {
+  const [loading, setLoading] = useState(false)
+
+  return (
+    <button
+      className="relative flex-shrink self-center"
+      onClick={async _ => {
+        setLoading(true)
+        try {
+          await signIn("QBO")
+          // only stop the spinner if there is an error
+        } catch (e) {
+          setLoading(false)
+          throw e
+        }
+      }}
+    >
+      {loading && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      )}
+      <Connect />
+    </button>
   )
 }
 

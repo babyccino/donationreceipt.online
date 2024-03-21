@@ -17,7 +17,7 @@ import {
   signInRedirect,
 } from "@/lib/auth/next-auth-helper-server"
 import { getCompanyInfo } from "@/lib/qbo-api"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import {
   charityRegistrationNumberRegexString,
   htmlRegularCharactersRegexString,
@@ -190,7 +190,7 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, query 
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("details")
 
-  const [account, accountList] = await Promise.all([
+  const [account, [accountSwitched, accountList]] = await Promise.all([
     db.query.accounts.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: session.accountId
@@ -221,12 +221,13 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, query 
         },
       },
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
+    getAccountList(session),
   ])
+
+  if (accountSwitched) {
+    return { redirect: { destination: "/details", permanent: false } }
+  }
+
   if (session.accountId && !account)
     throw new ApiError(500, "account for given user and session not found in db")
 

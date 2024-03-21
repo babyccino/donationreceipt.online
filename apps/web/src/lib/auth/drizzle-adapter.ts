@@ -12,12 +12,25 @@ import { refreshTokenIfNeeded } from "./next-auth-helper-server"
 
 const DEFAULT_QBO_REFRESH_PERIOD = 101 * toMs.day
 
+function getCountry(str: string): "us" | "ca" | "au" | "gb" {
+  const country = str.toLowerCase()
+  if (country.startsWith("ca")) return "ca"
+  if (country.startsWith("au")) return "au"
+  if (
+    country.startsWith("gb") ||
+    ["united kingdom", "great britain", "england", "scotland", "wales"].includes(country)
+  )
+    return "gb"
+  return "us"
+}
+
 export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
   async createUser(userData) {
     const [newUser] = await db
       .insert(users)
       .values({
         ...userData,
+        country: userData.country ? getCountry(userData.country) : "ca",
         emailVerified: new Date(),
         id: createId(),
       })
@@ -55,9 +68,12 @@ export const DrizzleAdapter = (db: LibSQLDatabase<Schema>): Adapter => ({
     //   account: { ...dbAccount, scope: dbAccount.scope ?? undefined } satisfies AdapterAccount,
     // }
   },
-  async updateUser({ id, emailVerified, ...userData }) {
+  async updateUser({ id, emailVerified, country, ...userData }) {
     if (!id) throw new Error("User not found")
-    await db.update(users).set(userData).where(eq(users.id, id))
+    await db
+      .update(users)
+      .set({ ...userData, country: getCountry(country ?? "") })
+      .where(eq(users.id, id))
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1)
     if (!user) throw new Error("User not found")
     return user

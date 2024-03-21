@@ -6,6 +6,7 @@ import { ToastToggleProps } from "flowbite-react/lib/esm/components/Toast/ToastT
 import { InputHTMLAttributes, ReactNode, useState } from "react"
 
 import { Link, buttonStyling } from "components/dist/link"
+import { SupportedCurrencies, getCurrencySymbol, getPrice } from "@/lib/intl"
 
 export const MissingData = ({
   filledIn,
@@ -28,38 +29,42 @@ const freeNonFeatures = ["Unlimited receipts", "Automatic emailing"]
 const paidFeatures = [
   "Individual configuration",
   "No setup, or hidden fees",
-  "Unlimited receipts",
-  "Automatic emailing",
+  "Unlimited individual receipt downloads",
+  "100 receipt emails included",
+  "First class user support",
 ]
 export function PricingCard({
   plan,
   title: propsTitle,
   button,
+  currency,
 }: {
   plan: "pro" | "free"
   title?: string
   button?: ReactNode
+  currency: SupportedCurrencies
 }) {
   const isPro = plan === "pro"
   const features = isPro ? paidFeatures : freeFeatures
-  const price = isPro ? 20 : 0
 
   const title = propsTitle ?? (isPro ? "Pro Plan" : "Free Plan")
 
   return (
     <Card>
-      <h5 className="mb-4 text-xl font-medium text-gray-500 dark:text-gray-400">{title}</h5>
-      <div className="flex items-baseline text-gray-900 dark:text-white">
-        <span className="text-3xl font-semibold">CAD</span>
-        <span className="text-5xl font-extrabold tracking-tight">{price}</span>
-        <span className="ml-1 text-xl font-normal text-gray-500 dark:text-gray-400">/year</span>
+      <h5 className="mb-4 text-xl font-medium text-gray-900 dark:text-white">{title}</h5>
+      <div className="flex items-baseline justify-center text-gray-900 dark:text-white">
+        {!["usd", "gbp"].includes(currency) && (
+          <span className="text-xs font-semibold">{currency.toUpperCase()}</span>
+        )}
+        <span className="text-5xl font-extrabold tracking-tight">
+          {getCurrencySymbol(currency)}
+          {isPro ? getPrice(currency) : 0}
+        </span>
+        <span className="text-md ml-1 font-normal text-gray-500 dark:text-gray-400">/year</span>
       </div>
-      <ul className="my-7 space-y-5">
+      <ul className="my-7 space-y-5 text-gray-900 dark:text-white">
         {features.map((feature, idx) => (
-          <li
-            key={idx}
-            className="flex space-x-3 text-base font-normal leading-tight text-gray-500 dark:text-gray-400"
-          >
+          <li key={idx} className="flex space-x-3 text-base font-normal leading-tight">
             <CheckIcon className="-mb-1 mr-4 inline-block w-5 text-green-300" />
             {feature}
           </li>
@@ -68,7 +73,7 @@ export function PricingCard({
           freeNonFeatures.map((nonFeature, idx) => (
             <li
               key={idx}
-              className="flex space-x-3 text-base font-normal leading-tight text-gray-500 line-through decoration-gray-500"
+              className="flex space-x-3 text-base font-normal leading-tight text-gray-500 line-through decoration-gray-500 dark:text-gray-400"
             >
               <XMarkIcon className="-mb-1 mr-4 inline-block w-5 text-red-300" />
               {nonFeature}

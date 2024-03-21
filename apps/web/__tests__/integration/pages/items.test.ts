@@ -1,15 +1,14 @@
 import { createId } from "@paralleldrive/cuid2"
 import { describe, expect, test } from "bun:test"
-import { eq } from "drizzle-orm"
 import { Session } from "next-auth"
 
 import { LayoutProps } from "@/components/layout"
 import { disconnectedRedirect } from "@/lib/auth/next-auth-helper-server"
-import { doneeInfos, userDatas, db } from "db"
 import { serialiseDates } from "@/lib/util/nextjs-helper"
-import { getServerSideProps } from "@/pages/items"
-import { Item } from "@/types/qbo-api"
+import { db, doneeInfos, userDatas } from "db"
 import { createUser, getMockApiContext, mockDoneeInfo, mockResponses } from "../mocks"
+
+import { getServerSideProps } from "@/pages/items"
 
 describe("items page getServerSideProps", () => {
   test("getServerSideProps returns sign in redirect when user is not signed in", async () => {
@@ -42,6 +41,7 @@ describe("items page getServerSideProps", () => {
         accountId: account.id,
         expires: session.expires.toISOString(),
         user: {
+          country: user.country,
           email: user.email,
           id: user.id,
           name: user.name as string,
@@ -61,8 +61,6 @@ describe("items page getServerSideProps", () => {
 
     const props2 = await getServerSideProps(ctx as any)
     expect(props2).toEqual({ props: { ...expectedProps, detailsFilledIn: true } })
-
-    await Promise.all([deleteUser(), db.delete(doneeInfos).where(eq(doneeInfos.id, doneeInfo.id))])
   })
 
   test("getServerSideProps returns selected items when they are in db", async () => {
@@ -91,6 +89,7 @@ describe("items page getServerSideProps", () => {
         accountId: account.id,
         expires: session.expires.toISOString(),
         user: {
+          country: user.country,
           email: user.email,
           id: user.id,
           name: user.name as string,
@@ -110,11 +109,5 @@ describe("items page getServerSideProps", () => {
 
     const props2 = await getServerSideProps(ctx as any)
     expect(props2).toEqual({ props: { ...expectedProps, detailsFilledIn: true } })
-
-    await Promise.all([
-      deleteUser(),
-      db.delete(userDatas).where(eq(userDatas.id, userDataId)),
-      db.delete(doneeInfos).where(eq(doneeInfos.id, doneeInfo.id)),
-    ])
   })
 })

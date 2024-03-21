@@ -12,6 +12,7 @@ declare module "next-auth" {
       id: string
       name: string
       email: string
+      country: string | null
     }
     accountId: string | null
   }
@@ -30,5 +31,9 @@ declare module "next-auth/adapters" {
 
   interface AdapterAccount {
     id?: string | null
+  }
+
+  interface AdapterUser {
+    country?: string | null
   }
 }

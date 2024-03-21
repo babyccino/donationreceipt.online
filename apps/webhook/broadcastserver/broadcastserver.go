@@ -17,7 +17,6 @@ import (
 
 	"webhook/events"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	"nhooyr.io/websocket"
 )
 
@@ -32,9 +31,23 @@ type subscriberGroup struct {
 	subscribers     map[*subscriber]struct{}
 	eventsLock      sync.Mutex
 	events          []SubscriberGroupEvent
+	maxEventAge     time.Duration
 	lastFlushed     time.Time
 	updatedAt       time.Time
 	createdAt       time.Time
+}
+
+func newSubscriberGroup(maxEventAge time.Duration) *subscriberGroup {
+	return &subscriberGroup{
+		subscribersLock: sync.Mutex{},
+		subscribers: make(map[*subscriber]struct{}),
+		eventsLock: sync.Mutex{},
+		events: make([]SubscriberGroupEvent, 0),
+		maxEventAge: maxEventAge,
+		lastFlushed: time.Now(),
+		createdAt:   time.Now(),
+		updatedAt:   time.Now(),
+	}
 }
 
 func (subGroup *subscriberGroup) addEvent(event SubscriberGroupEvent) {
@@ -64,12 +77,10 @@ func (subGroup *subscriberGroup) addEvent(event SubscriberGroupEvent) {
 	fmt.Printf("[debug] %d subscribers were sent an event \n", count)
 }
 
-const MAX_EVENT_AGE = time.Second * 30
-
 // user must lock eventsLock before calling this
 func (subGroup *subscriberGroup) flush() {
 	now := time.Now()
-	minEventTime := now.Add(-1 * MAX_EVENT_AGE)
+	minEventTime := now.Add(-1 * subGroup.maxEventAge)
 	if subGroup.lastFlushed.After(minEventTime) {
 		return
 	}
@@ -99,36 +110,27 @@ type BroadcastServer struct {
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
 	logf func(f string, v ...interface{})
-
 	serveMux http.ServeMux
-
 	subscriberGroupLock sync.Mutex
 	subscriberGroupMap  map[string]*subscriberGroup
-
 	snsArn string
-
 	db *sql.DB
+	maxEventAge time.Duration
 }
 
-func NewBroadcastServer(snsArn, dbUrl string) (*BroadcastServer, error) {
-	db, err := sql.Open("libsql", dbUrl)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[error] failed to open db %s: %s", dbUrl, err)
-		os.Exit(1)
-	}
-
+func NewBroadcastServer(snsArn string, db *sql.DB, maxEventAge time.Duration) (*BroadcastServer, error) {
 	server := &BroadcastServer{
 		db:                 db,
 		snsArn:             snsArn,
 		logf:               log.Printf,
 		subscriberGroupMap: make(map[string]*subscriberGroup),
+		maxEventAge:        maxEventAge,
 	}
 	server.serveMux.HandleFunc("/", func(writer http.ResponseWriter, req *http.Request) {
 		writer.Write([]byte("Go to wss:*/subscribe/campaignId to connect"))
 	})
 	server.serveMux.HandleFunc("/subscribe/", server.SubscribeHandler)
 	server.serveMux.HandleFunc("/publish", server.PublishHandler)
-	server.serveMux.HandleFunc("/test-publish", server.TestPublishHandler)
 	server.serveMux.HandleFunc("/ping", server.PingHandler)
 
 	return server, nil
@@ -233,25 +235,26 @@ func (server *BroadcastServer) PublishHandler(writer http.ResponseWriter, req *h
 	server.subscriberGroupLock.Lock()
 	subGroup, ok := server.subscriberGroupMap[campaignId]
 	if !ok {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
+		subGroup = newSubscriberGroup(server.maxEventAge)
 		server.subscriberGroupMap[campaignId] = subGroup
 	}
 	server.subscriberGroupLock.Unlock()
 
 	subGroup.addEvent(event)
-	server.WriteEventToDb(donorId, campaignId, status)
+	server.WriteEventToDb(donorId, campaignId, status, emailId)
 
 	writer.WriteHeader(http.StatusAccepted)
 }
 
-const sqlStatement = `
+func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status, emailId string) error {
+	const sqlStatement = `
 UPDATE receipts
-	SET email_status = $emailStatus
-	WHERE campaign_id = $campaignId AND donor_id = $donorId;
+		SET email_status = $emailStatus,
+			email_id = $emailId
+		WHERE campaign_id = $campaignId AND donor_id = $donorId;
 `
 
-func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status string) error {
-	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
+	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("emailId", emailId), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[error] an error occured writing to the db %s", err)
 		return err
@@ -268,46 +271,6 @@ func (server *BroadcastServer) WriteEventToDb(donorId, campaignId, status string
 		return errors.New("no rows affected")
 	}
 	return nil
-}
-
-// publishHandler reads the request body with a limit of 8192 bytes and then publishes
-// the received message.
-func (server *BroadcastServer) TestPublishHandler(writer http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(writer, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-	body := http.MaxBytesReader(writer, r.Body, 8192)
-	msg, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(writer, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	var parsedBody struct {
-		CampaignId string `json:"campaignId"`
-		DonorId    string `json:"donorId"`
-		Status     string `json:"status"`
-	}
-	err2 := json.Unmarshal(msg, &parsedBody)
-	if err2 != nil || parsedBody.CampaignId == "" || parsedBody.DonorId == "" || parsedBody.Status == "" {
-		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		fmt.Fprintln(os.Stderr, "[error] invalid test request body")
-		return
-	}
-
-	server.subscriberGroupLock.Lock()
-	subGroup, ok := server.subscriberGroupMap[parsedBody.CampaignId]
-	if !ok {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
-		server.subscriberGroupMap[parsedBody.CampaignId] = subGroup
-	}
-	server.subscriberGroupLock.Unlock()
-
-	event := SubscriberGroupEvent{donorId: parsedBody.DonorId, status: parsedBody.Status, createdAt: time.Now()}
-	subGroup.addEvent(event)
-
-	writer.WriteHeader(http.StatusAccepted)
 }
 
 // subscribeHandler accepts the WebSocket connection and then subscribes
@@ -410,7 +373,7 @@ func (server *BroadcastServer) AddSubscriber(ctx context.Context, sub *subscribe
 	server.subscriberGroupLock.Lock()
 	subGroup, found := server.subscriberGroupMap[campaignId]
 	if !found {
-		subGroup = &subscriberGroup{subscribers: make(map[*subscriber]struct{}), createdAt: time.Now()}
+		subGroup = newSubscriberGroup(server.maxEventAge)
 		server.subscriberGroupMap[campaignId] = subGroup
 	}
 	defer server.subscriberGroupLock.Unlock()

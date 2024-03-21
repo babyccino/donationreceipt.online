@@ -1,30 +1,31 @@
 import { BriefcaseIcon, MapPinIcon } from "@heroicons/react/24/solid"
 import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { Button, Card } from "flowbite-react"
+import { Button, Card, Spinner } from "flowbite-react"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import { signIn } from "next-auth/react"
 import { ApiError } from "next/dist/server/api-utils"
 import Image from "next/image"
 import { useRouter } from "next/router"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import { LayoutProps } from "@/components/layout"
 import { Connect } from "@/components/qbo"
 import { LoadingButton, PricingCard } from "@/components/ui"
 import { signInRedirect } from "@/lib/auth/next-auth-helper-server"
-import { Subscription as DbSubscription, accounts, sessions, users, db } from "db"
-import { getImageUrl } from "utils/dist/db-helper"
+import { config } from "@/lib/env"
+import { SupportedCurrencies, getCurrency } from "@/lib/intl"
 import { isUserSubscribed } from "@/lib/stripe"
-import { getDaysBetweenDates } from "utils/dist/date"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nextjs-helper"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { subscribe } from "@/lib/util/request"
-import { fetchJsonData } from "utils/dist/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DisconnectBody } from "@/pages/api/auth/disconnect"
 import { DataType } from "@/pages/api/stripe/update-subscription"
-import { config } from "@/lib/env"
+import { Subscription as DbSubscription, accounts, db, sessions, users } from "db"
+import { getDaysBetweenDates } from "utils/dist/date"
+import { getImageUrl } from "utils/dist/db-helper"
+import { fetchJsonData } from "utils/dist/request"
 
 type Subscription = Pick<
   DbSubscription,
@@ -37,6 +38,7 @@ type Props = ({
   companyName: string | null
   connected: boolean
   realmId: string | null
+  currency: SupportedCurrencies
 } & (
   | { subscribed: false }
   | {
@@ -130,8 +132,9 @@ function ProfileCard({
         </>
       )}
       {connected ? (
-        <Button
+        <LoadingButton
           // this is the only colour which seems to work other than "blue" and I can't be bothered to fix it
+          loadingImmediately
           color="dark"
           className="flex-shrink"
           onClick={async () => {
@@ -144,13 +147,38 @@ function ProfileCard({
           }}
         >
           Disconnect
-        </Button>
+        </LoadingButton>
       ) : (
-        <button className="flex-shrink self-center" onClick={e => void signIn("QBO")}>
-          <Connect />
-        </button>
+        <ConnectButton />
       )}
     </Card>
+  )
+}
+
+function ConnectButton() {
+  const [loading, setLoading] = useState(false)
+
+  return (
+    <button
+      className="relative flex-shrink self-center"
+      onClick={async _ => {
+        setLoading(true)
+        try {
+          await signIn("QBO")
+          // only stop the spinner if there is an error
+        } catch (e) {
+          setLoading(false)
+          throw e
+        }
+      }}
+    >
+      {loading && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      )}
+      <Connect />
+    </button>
   )
 }
 
@@ -174,11 +202,13 @@ export default function AccountPage(serialisedProps: SerialisedProps) {
                   subscribe("/account")
                 }}
                 color="blue"
+                className="transition duration-100"
               >
                 Go pro
               </LoadingButton>
             ) : undefined
           }
+          currency={props.currency}
         />
       </div>
       <div className="pt-8 text-white sm:p-14">
@@ -202,11 +232,11 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("account")
 
-  const [user, accountList] = await Promise.all([
+  const [user, [accountSwitched, accountList]] = await Promise.all([
     db.query.users.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: eq(users.id, session.user.id),
-      columns: { name: true },
+      columns: { name: true, country: true },
       with: {
         accounts: {
           where: session.accountId
@@ -233,12 +263,14 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
         },
       },
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
+    getAccountList(session),
   ])
+
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: "/account", permanent: false } }
+  }
+
   if (!user) throw new ApiError(500, "user not found in db")
   let account = user.accounts?.[0] as (typeof user.accounts)[number] | undefined
   if (session.accountId && !account)
@@ -278,6 +310,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
         realmId,
         companies: accountList,
         selectedAccountId,
+        currency: getCurrency(user.country),
       } satisfies Props),
     }
   }
@@ -292,6 +325,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
       realmId,
       companies: accountList,
       selectedAccountId,
+      currency: getCurrency(user.country),
     } satisfies SerialisedProps,
   }
 }

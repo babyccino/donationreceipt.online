@@ -1,4 +1,5 @@
 import admin from "firebase-admin"
+import { Bucket } from "@google-cloud/storage"
 
 import { getConfig } from "utils/dist/config"
 
@@ -41,5 +42,6 @@ try {
   firestore.settings({ ignoreUndefinedProperties: true })
 } catch {}
 
-export const storageBucket = admin.storage().bucket(`${firebaseProjectId}.appspot.com`)
-export type Bucket = typeof storageBucket
+export const storageBucket = admin
+  .storage()
+  .bucket(`${firebaseProjectId}.appspot.com`) as any as Bucket

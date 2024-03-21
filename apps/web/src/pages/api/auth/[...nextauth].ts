@@ -6,6 +6,7 @@ import { DrizzleAdapter } from "@/lib/auth/drizzle-adapter"
 import { config } from "@/lib/env"
 import { OpenIdUserInfo, QBOProfile, QboAccount } from "@/types/qbo-api"
 import { db } from "db"
+import { AdapterUser } from "next-auth/adapters"
 import { fetchJsonData } from "utils/dist/request"
 import { toSeconds } from "utils/dist/time"
 
@@ -60,8 +61,10 @@ const signIn: QboCallbacksOptions["signIn"] = async ({ user, account, profile })
 
   if (!userInfo.emailVerified) return "/terms/email-verified"
 
+  // this is passed to the profile object in the adapter cos nextauth? ¯\_(ツ)_/¯
   user.email = email
   user.name ??= name
+  ;(user as AdapterUser).country = userInfo.address.country
 
   return true
 }
@@ -72,6 +75,7 @@ const session: QboCallbacksOptions["session"] = async ({ session, user }) => {
       id: user.id ?? session.user.id,
       name: user.name ?? session.user.name,
       email: user.email ?? session.user.email,
+      country: (user as AdapterUser).country ?? session.user.country ?? null,
     },
     accountId: session.accountId,
     expires: (session.expires as unknown as Date).toISOString(),

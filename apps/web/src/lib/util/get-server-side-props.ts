@@ -1,16 +1,18 @@
 import { captureException } from "@sentry/nextjs"
 import { accounts, db, sessions } from "db"
-import { and, eq, isNotNull } from "drizzle-orm"
+import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
-import { getServerSession } from "next-auth"
+import { getServerSession, Session } from "next-auth"
 
 import { LayoutProps } from "@/components/layout"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { config } from "@/lib/env"
 
 export function interceptGetServerSidePropsErrors<T extends GetServerSideProps<any>>(
   getServerSideProps: T,
 ) {
   return async (ctx: any) => {
+    if (config.nodeEnv === "test") return await getServerSideProps(ctx)
     try {
       return await getServerSideProps(ctx)
     } catch (error: any) {
@@ -28,20 +30,9 @@ const _defaultGetServerSideProps: GetServerSideProps<LayoutProps> = async ({ req
   const session = await getServerSession(req, res, authOptions)
   if (!session) return { props: { session: null } satisfies LayoutProps }
 
-  const accountList = (await db.query.accounts.findMany({
-    columns: { companyName: true, id: true },
-    where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-  })) as { companyName: string; id: string }[]
+  const [_, accountList] = await getAccountList(session)
 
-  if (session.accountId === null && accountList.length > 0) {
-    await db
-      .update(sessions)
-      .set({ accountId: accountList[0].id })
-      .where(eq(sessions.userId, session.user.id))
-    session.accountId = accountList[0].id
-  }
-
-  if (accountList.length > 0)
+  if (accountList !== null)
     return {
       props: {
         session,
@@ -56,7 +47,30 @@ const _defaultGetServerSideProps: GetServerSideProps<LayoutProps> = async ({ req
       } satisfies LayoutProps,
     }
 }
-
 export const defaultGetServerSideProps = interceptGetServerSidePropsErrors(
   _defaultGetServerSideProps,
 )
+
+export async function getAccountList(
+  session: Session,
+): Promise<[boolean, LayoutProps["companies"]]> {
+  const accountList = (await db.query.accounts.findMany({
+    columns: { companyName: true, id: true },
+    where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
+    // get "accounting" accounts first
+    orderBy: [asc(accounts.scope), desc(accounts.updatedAt)],
+  })) as { companyName: string; id: string }[]
+
+  if (
+    accountList.length > 0 &&
+    (!session.accountId || !accountList.some(a => a.id === session.accountId))
+  ) {
+    await db
+      .update(sessions)
+      .set({ accountId: accountList[0].id })
+      .where(eq(sessions.userId, session.user.id))
+    session.accountId = accountList[0].id
+    return [true, accountList]
+  }
+  return [false, accountList.length > 0 ? accountList : null]
+}

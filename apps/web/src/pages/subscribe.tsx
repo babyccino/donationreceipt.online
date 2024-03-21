@@ -1,11 +1,16 @@
+import { LayoutProps } from "@/components/layout"
 import { LoadingButton, PricingCard } from "@/components/ui"
+import { SupportedCountries, getCurrency } from "@/lib/intl"
 import { subscribe } from "@/lib/util/request"
 
-export default function Subscribe() {
+export default function Subscribe(props: LayoutProps) {
+  const currency = props.session?.user.country
+    ? getCurrency(props.session.user.country as SupportedCountries)
+    : "usd"
   return (
     <section className="p-4 sm:flex sm:min-h-screen sm:flex-row sm:justify-center sm:p-10">
       <div className="border-b border-solid border-slate-700 pb-8 text-white sm:border-b-0 sm:border-r sm:p-14">
-        <PricingCard title="Your selected plan" plan="free" />
+        <PricingCard title="Your selected plan" plan="free" currency={currency} />
       </div>
       <div className="pt-8 text-white sm:p-14">
         <PricingCard
@@ -22,6 +27,7 @@ export default function Subscribe() {
               Go pro
             </LoadingButton>
           }
+          currency={currency}
         />
       </div>
     </section>

@@ -1,6 +1,6 @@
 import { ArrowRightIcon, CheckIcon } from "@heroicons/react/24/solid"
 import { accounts, sessions } from "db"
-import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import { ApiError } from "next/dist/server/api-utils"
@@ -9,7 +9,7 @@ import { ReactNode } from "react"
 import { twMerge } from "tailwind-merge"
 
 import { LayoutProps } from "@/components/layout"
-import { interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import HandDrawnUpArrow from "@/public/svg/hand-drawn-up-arrow.svg"
 import { Link as StyledLink } from "components/dist/link"
@@ -134,34 +134,25 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
     }
   }
 
-  let [account, accountList] = await Promise.all([
+  // the account retrieved will either be the account specified in the session
+  // or the first account for the user that has a realmId
+  let [account, [accountSwitched, accountList]] = await Promise.all([
     db.query.accounts.findFirst({
       // if the realmId is specified get that account otherwise just get the first account for the user
       where: and(
         eq(accounts.userId, session.user.id),
-        session.accountId ? eq(accounts.id, session.accountId) : eq(accounts.scope, "accounting"),
+        session.accountId ? eq(accounts.id, session.accountId) : isNotNull(accounts.realmId),
       ),
       columns: { scope: true, id: true },
       with: { userData: { columns: { id: true } }, doneeInfo: { columns: { id: true } } },
-      orderBy: desc(accounts.updatedAt),
+      orderBy: [asc(accounts.scope), desc(accounts.updatedAt)],
     }),
-    db.query.accounts.findMany({
-      columns: { companyName: true, id: true },
-      where: and(isNotNull(accounts.companyName), eq(accounts.userId, session.user.id)),
-      orderBy: desc(accounts.updatedAt),
-    }) as Promise<{ companyName: string; id: string }[]>,
+    getAccountList(session),
   ])
-  if (session.accountId && !account)
-    throw new ApiError(500, "account for given user and session not found in db")
 
-  // if the session does not specify an account but there is a connected account
-  // then the session is connected to one of these accounts
-  if (!session.accountId && account) {
-    session.accountId = account.id
-    await db
-      .update(sessions)
-      .set({ accountId: account.id })
-      .where(eq(sessions.userId, session.user.id))
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: "/", permanent: false } }
   }
 
   if (!session.accountId || !account) return { props: { session, filledIn: null } satisfies Props }

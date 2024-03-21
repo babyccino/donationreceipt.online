@@ -6,9 +6,9 @@ import { DrizzleAdapter } from "@/lib/auth/drizzle-adapter"
 import { config } from "@/lib/env"
 import { OpenIdUserInfo, QBOProfile, QboAccount } from "@/types/qbo-api"
 import { db } from "db"
+import { AdapterUser } from "next-auth/adapters"
 import { fetchJsonData } from "utils/dist/request"
 import { toSeconds } from "utils/dist/time"
-import { AdapterUser } from "next-auth/adapters"
 
 const { qboClientId, qboClientSecret, qboWellKnown, qboAccountsBaseRoute, nextauthSecret } = config
 

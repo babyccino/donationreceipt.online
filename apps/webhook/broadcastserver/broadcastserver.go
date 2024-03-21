@@ -131,7 +131,6 @@ func NewBroadcastServer(snsArn string, db *sql.DB, maxEventAge time.Duration) (*
 	})
 	server.serveMux.HandleFunc("/subscribe/", server.SubscribeHandler)
 	server.serveMux.HandleFunc("/publish", server.PublishHandler)
-	server.serveMux.HandleFunc("/test-publish", server.TestPublishHandler)
 	server.serveMux.HandleFunc("/ping", server.PingHandler)
 
 	return server, nil

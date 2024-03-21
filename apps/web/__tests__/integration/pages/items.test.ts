@@ -41,6 +41,7 @@ describe("items page getServerSideProps", () => {
         accountId: account.id,
         expires: session.expires.toISOString(),
         user: {
+          country: user.country,
           email: user.email,
           id: user.id,
           name: user.name as string,
@@ -88,6 +89,7 @@ describe("items page getServerSideProps", () => {
         accountId: account.id,
         expires: session.expires.toISOString(),
         user: {
+          country: user.country,
           email: user.email,
           id: user.id,
           name: user.name as string,

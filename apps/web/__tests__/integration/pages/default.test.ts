@@ -33,6 +33,7 @@ describe("items page defaultGetServerSideProps", () => {
               email: user.email,
               id: user.id,
               name: user.name as string,
+              country: user.country,
             },
           },
         } satisfies LayoutProps,
@@ -49,6 +50,7 @@ describe("items page defaultGetServerSideProps", () => {
             accountId: account.id,
             expires: session.expires.toISOString(),
             user: {
+              country: user.country,
               email: user.email,
               id: user.id,
               name: user.name as string,
@@ -90,6 +92,7 @@ describe("items page defaultGetServerSideProps", () => {
           accountId: newAccount.id,
           expires: session.expires.toISOString(),
           user: {
+            country: user.country,
             email: user.email,
             id: user.id,
             name: user.name as string,

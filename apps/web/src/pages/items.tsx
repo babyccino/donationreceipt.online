@@ -1,14 +1,15 @@
 import { InformationCircleIcon } from "@heroicons/react/24/solid"
-import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { Alert, Button, Label, Select } from "flowbite-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { and, desc, eq } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/router"
-import { ChangeEventHandler, FormEventHandler, useEffect, useMemo, useRef, useState } from "react"
+import { ChangeEventHandler, FormEventHandler, useMemo, useRef, useState } from "react"
+import { FieldPath, useForm, ControllerProps, FieldValues } from "react-hook-form"
+import { ApiError } from "utils/dist/error"
+import { z } from "zod"
 
-import { Fieldset, Legend, Toggle } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
 import { LoadingSubmitButton } from "@/components/ui"
 import {
@@ -24,6 +25,26 @@ import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nex
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DataType as ItemsApiDataType } from "@/pages/api/items"
 import { Item } from "@/types/qbo-api"
+import { Alert } from "components/dist/ui/alert"
+import { Button } from "components/dist/ui/button"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "components/dist/ui/form"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "components/dist/ui/select"
+import { Switch } from "components/dist/ui/switch"
+import { Textarea } from "components/dist/ui/textarea"
 import { accounts, db, sessions } from "db"
 import {
   DateRange,
@@ -31,11 +52,23 @@ import {
   createDateRange,
   endOfPreviousYear,
   endOfThisYear,
+  getDateRangeFromType,
   startOfPreviousYear,
   startOfThisYear,
   utcEpoch,
 } from "utils/dist/date"
 import { fetchJsonData } from "utils/dist/request"
+
+const schema = z.object({
+  dateRangeType: z.string({ required_error: "Please select a date range type" }),
+  customDateRange: z.object({ startDate: z.date(), endDate: z.date() }).required().optional(),
+  items: z.array(z.string()).min(1, { message: "Please select at least one item" }),
+})
+type Schema = z.infer<typeof schema>
+type RenderFunc<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> = ControllerProps<TFieldValues, TName>["render"]
 
 const DumbDatePicker = () => (
   <div className="relative w-full text-gray-700">
@@ -71,21 +104,211 @@ const DatePicker = dynamic(import("react-tailwindcss-datepicker"), {
 type Props = ({
   items: Item[]
   detailsFilledIn: boolean
-} & (
-  | { itemsFilledIn: false }
+} & ({ itemsFilledIn: false } | PropsDateRange)) &
+  LayoutProps
+
+type PropsDateRange =
   | {
       itemsFilledIn: true
       selectedItems: string[]
-      dateRange: DateRange
+      dateRangeType: NonCustomDateRangeType
     }
-)) &
-  LayoutProps
+  | {
+      itemsFilledIn: true
+      selectedItems: string[]
+      dateRangeType: DateRangeType.Custom
+      customDateRange: DateRange
+    }
+
+type NonCustomDateRangeType =
+  | DateRangeType.AllTime
+  | DateRangeType.LastYear
+  | DateRangeType.ThisYear
+  | DateRangeType.Ytd
+
 type SerialisedProps = SerialiseDates<Props>
 
 type DateValueType = { startDate: Date | string | null; endDate: Date | string | null } | null
 
 const previousYear = new Date().getFullYear() - 1
 const defaultDateState = createDateRange(`${previousYear}/01/01`, `${previousYear}/12/31`)
+
+export default function Items(serialisedProps: SerialisedProps) {
+  const props = useMemo(() => deSerialiseDates({ ...serialisedProps }), [serialisedProps])
+  const { items, detailsFilledIn } = props
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const form = useForm<Schema>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      items: items.map(item => item.id),
+      dateRangeType: DateRangeType.LastYear,
+      customDateRange: defaultDateState,
+    },
+  })
+
+  const onSubmit = async (data: Schema) => {
+    console.log("form submitted: ", data)
+
+    setLoading(true)
+
+    const postData: ItemsApiDataType = {
+      items: data.items,
+      dateRange: data.customDateRange ?? getDateRangeFromType(data.dateRangeType as DateRangeType),
+    }
+    await fetchJsonData("/api/items", { method: "POST", body: postData })
+
+    const destination = detailsFilledIn ? "/generate-receipts" : "/details"
+    await router.push({
+      pathname: destination,
+    })
+  }
+
+  const itemsMap = (item: Item) => (
+    <FormField
+      key={item.id}
+      control={form.control}
+      name="items"
+      render={({ field }) => {
+        return (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <FormLabel colorOnError={false}>{item.name}</FormLabel>
+              <FormDescription>TODO add descriptions.</FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value?.includes(item.id)}
+                onCheckedChange={checked => {
+                  return checked
+                    ? field.onChange([...field.value, item.id])
+                    : field.onChange(field.value?.filter(itemId => itemId !== item.id))
+                }}
+              />
+            </FormControl>
+          </FormItem>
+        )
+      }}
+    />
+  )
+
+  const dateRangeCb: RenderFunc<Schema, "dateRangeType"> = ({ field }) => (
+    <>
+      <FormField
+        name="dateRangeType"
+        control={form.control}
+        render={({ field }) => (
+          <FormItem className="mb-4">
+            <div className="mb-2">
+              <FormLabel className="text-base">Date Range</FormLabel>
+              <FormDescription>Date range for your receipts.</FormDescription>
+            </div>
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DateRangeType.LastYear}>Last year</SelectItem>
+                <SelectItem value={DateRangeType.ThisYear}>This year</SelectItem>
+                <SelectItem value={DateRangeType.Ytd}>This year to date</SelectItem>
+                <SelectItem value={DateRangeType.AllTime}>All time</SelectItem>
+                <SelectItem value={DateRangeType.Custom}>Custom range</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+        )}
+      />
+      <FormField
+        name="customDateRange"
+        control={form.control}
+        disabled={field.value !== DateRangeType.Custom}
+        render={({ field }) => (
+          <FormItem className="mb-8">
+            <div className="mb-2">
+              {/* <FormLabel>Date Range</FormLabel> */}
+              <FormDescription disabled={field.disabled}>
+                Specify a custom date range.
+              </FormDescription>
+            </div>
+            <DatePicker
+              value={field.value ?? getDateRangeFromType(DateRangeType.LastYear)}
+              onChange={(date: DateValueType) => {
+                if (!date || !date.endDate || !date.startDate) return
+                const startDate =
+                  typeof date.startDate == "string" ? new Date(date.startDate) : date.startDate
+                const endDate =
+                  typeof date.endDate == "string" ? new Date(date.endDate) : date.endDate
+                field.onChange({ startDate, endDate })
+              }}
+              disabled={field.disabled}
+            />
+            {/* <DumbDatePicker
+              value={`${formatDateHtmlReverse(customDateState.startDate)} ~ ${formatDateHtmlReverse(
+                customDateState.endDate,
+              )}}
+            /> */}
+          </FormItem>
+        )}
+      />
+    </>
+  )
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="m-auto my-4 flex w-full max-w-lg flex-col items-stretch justify-center p-4"
+      >
+        <Alert className="mb-4">
+          <span className="mb-[-0.15rem] mr-2 inline-block h-4 w-4">
+            <InformationCircleIcon />
+          </span>
+          Make sure to only choose your QuickBooks sales items which qualify as donations
+        </Alert>
+        <FormField
+          control={form.control}
+          name="items"
+          render={({ field }) => (
+            <FormItem className="mb-4">
+              <div className="mb-4">
+                <FormLabel className="text-base">Items</FormLabel>
+                <FormDescription colorOnError>
+                  Select your quickbooks sales items which qualify as donations.
+                </FormDescription>
+              </div>
+              {items.map(itemsMap)}
+              <FormMessage />
+              <div className="flex flex-row gap-2 pb-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => field.onChange(items.map(item => item.id))}
+                  color="blue"
+                >
+                  Check All
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => field.onChange([])}
+                  color="blue"
+                >
+                  Uncheck All
+                </Button>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField name="dateRangeType" control={form.control} render={dateRangeCb} />
+        <LoadingSubmitButton loading={loading} color="blue" className="mb-4">
+          {detailsFilledIn ? "Generate Receipts" : "Enter Donee Details"}
+        </LoadingSubmitButton>
+      </form>
+    </Form>
+  )
+}
+
+// --- server-side props --- //
 
 const datesEqual = (date1: Date, date2: Date) => date1.getTime() - date2.getTime() === 0
 function getDateRangeType({ startDate, endDate }: DateRange): DateRangeType {
@@ -95,174 +318,6 @@ function getDateRangeType({ startDate, endDate }: DateRange): DateRangeType {
     return DateRangeType.LastYear
   return DateRangeType.Custom
 }
-
-export default function Items(serialisedProps: SerialisedProps) {
-  const props = useMemo(() => deSerialiseDates({ ...serialisedProps }), [serialisedProps])
-  const { items, detailsFilledIn } = props
-  const [loading, setLoading] = useState(false)
-  const [showHelper, setShowHelper] = useState(false)
-  const router = useRouter()
-  const inputRefs = useRef<HTMLInputElement[]>([])
-  const formRef = useRef<HTMLFormElement>(null)
-
-  const [dateRangeState, setDateRangeState] = useState<DateRangeType>(
-    props.itemsFilledIn ? getDateRangeType(props.dateRange) : DateRangeType.LastYear,
-  )
-  const dateRangeIsCustom = dateRangeState === DateRangeType.Custom
-
-  const [customDateState, setCustomDateState] = useState(
-    props.itemsFilledIn ? props.dateRange : defaultDateState,
-  )
-  const onDateChange = (date: DateValueType) => {
-    if (!date || !date.endDate || !date.startDate) return
-    const startDate = typeof date.startDate == "string" ? new Date(date.startDate) : date.startDate
-    const endDate = typeof date.endDate == "string" ? new Date(date.endDate) : date.endDate
-    setCustomDateState({ startDate, endDate })
-  }
-
-  const handleSelectChange: ChangeEventHandler<HTMLSelectElement> = event => {
-    const dateRangeType = event.target.value as DateRangeType
-    setDateRangeState(dateRangeType)
-
-    switch (dateRangeType) {
-      case DateRangeType.ThisYear:
-        return setCustomDateState({ startDate: startOfThisYear(), endDate: endOfThisYear() })
-      case DateRangeType.Ytd:
-        return setCustomDateState({ startDate: startOfThisYear(), endDate: new Date() })
-      case DateRangeType.AllTime:
-        // TODO update before 2049/12/31
-        return setCustomDateState({ startDate: utcEpoch(), endDate: new Date("2050/1/1") })
-      case DateRangeType.LastYear:
-      case DateRangeType.Custom:
-      default:
-        return setCustomDateState({
-          startDate: startOfPreviousYear(),
-          endDate: endOfPreviousYear(),
-        })
-    }
-  }
-
-  const checkAll = (_: any) => inputRefs.current.forEach(el => (el.checked = true))
-  const unCheckAll = (_: any) => inputRefs.current.forEach(el => (el.checked = false))
-
-  const getItems = () => {
-    if (!formRef.current) throw new Error("Form html element has not yet been initialised")
-
-    const formData = new FormData(formRef.current)
-    return formData.getAll("items") as string[]
-  }
-
-  const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
-    event.preventDefault()
-    setLoading(true)
-
-    const items = getItems()
-    if (items.length === 0) {
-      setLoading(false)
-      setShowHelper(true)
-      return
-    }
-    const postData: ItemsApiDataType = { items, dateRange: customDateState }
-    await fetchJsonData("/api/items", { method: "POST", body: postData })
-
-    const destination = detailsFilledIn ? "/generate-receipts" : "/details"
-    await router.push({
-      pathname: destination,
-    })
-  }
-
-  const onFormChange: FormEventHandler = () => {
-    const items = getItems()
-    if (items.length > 0) {
-      setLoading(false)
-      setShowHelper(false)
-    }
-  }
-
-  return (
-    <form
-      ref={formRef}
-      onSubmit={onSubmit}
-      onChange={onFormChange}
-      className="m-auto flex w-full max-w-lg flex-col items-center justify-center space-y-4 p-4"
-    >
-      <Fieldset>
-        <Legend className="mb-3">Selected items</Legend>
-        {showHelper ? (
-          <Alert
-            color="failure"
-            className="mb-4 font-medium"
-            withBorderAccent
-            icon={() => <InformationCircleIcon className="mr-2 h-6 w-6" />}
-          >
-            You must select at least one item
-          </Alert>
-        ) : (
-          <Alert
-            color="info"
-            className="mb-4"
-            icon={() => <InformationCircleIcon className="mr-2 h-6 w-6" />}
-          >
-            Make sure to only choose your QuickBooks sales items which qualify as donations
-          </Alert>
-        )}
-        {items.map(({ id, name }) => (
-          <Toggle
-            key={id}
-            id={id}
-            label={name}
-            defaultChecked={props.itemsFilledIn ? props.selectedItems.includes(id) : true}
-            ref={el => (el ? inputRefs.current.push(el) : null)}
-          />
-        ))}
-        <div className="flex flex-row gap-2 pb-2 pt-1">
-          <Button onClick={checkAll} color="blue">
-            Check All
-          </Button>
-          <Button onClick={unCheckAll} color="blue">
-            Uncheck All
-          </Button>
-        </div>
-      </Fieldset>
-      <Fieldset>
-        <Legend className="mb-4">Date range</Legend>
-        <Label className="mb-2 inline-block" htmlFor="dateRangeType">
-          Range
-        </Label>
-        <Select
-          onChange={handleSelectChange}
-          name="dateRangeType"
-          id="dateRangeType"
-          value={dateRangeState}
-        >
-          <option value={DateRangeType.LastYear}>Last year</option>
-          <option value={DateRangeType.ThisYear}>This year</option>
-          <option value={DateRangeType.Ytd}>This year to date</option>
-          <option value={DateRangeType.AllTime}>All time</option>
-          <option value={DateRangeType.Custom}>Custom range</option>
-        </Select>
-        <div className="mt-2 space-y-1">
-          <Label className="mb-2 inline-block">Date Range</Label>
-          <DatePicker
-            value={customDateState}
-            onChange={onDateChange}
-            disabled={!dateRangeIsCustom}
-          />
-          {/* <DumbDatePicker
-            value={`${formatDateHtmlReverse(customDateState.startDate)} ~ ${formatDateHtmlReverse(
-              customDateState.endDate,
-            )}`}
-          /> */}
-        </div>
-      </Fieldset>
-      <LoadingSubmitButton loading={loading} color="blue">
-        {detailsFilledIn ? "Generate Receipts" : "Enter Donee Details"}
-      </LoadingSubmitButton>
-    </form>
-  )
-}
-
-// --- server-side props --- //
 
 const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, res }) => {
   const session = await getServerSession(req, res, authOptions)
@@ -344,6 +399,21 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
 
   const { userData } = account
   const selectedItems = userData.items ? userData.items.split(",") : []
+  const dateRangeType = getDateRangeType(userData)
+  if (dateRangeType !== DateRangeType.Custom)
+    return {
+      props: serialiseDates({
+        itemsFilledIn: true,
+        session,
+        items,
+        detailsFilledIn,
+        selectedItems,
+        companies: accountList,
+        selectedAccountId: session.accountId,
+        dateRangeType,
+      } satisfies Props),
+    }
+
   return {
     props: serialiseDates({
       itemsFilledIn: true,
@@ -351,10 +421,12 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
       items,
       detailsFilledIn,
       selectedItems,
-      dateRange: { startDate: userData.startDate, endDate: userData.endDate },
       companies: accountList,
       selectedAccountId: session.accountId,
+      dateRangeType,
+      customDateRange: { startDate: userData.startDate, endDate: userData.endDate },
     } satisfies Props),
   }
 }
+
 export const getServerSideProps = interceptGetServerSidePropsErrors(_getServerSideProps)

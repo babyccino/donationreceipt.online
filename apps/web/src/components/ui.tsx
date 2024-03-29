@@ -1,12 +1,21 @@
 // svg from heroicons.dev
 // hand drawn arrows from svgrepo.com
 import { CheckIcon, EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/solid"
-import { Button, Card, ButtonProps as FlowbiteButtonProps, Spinner, Toast } from "flowbite-react"
-import { ToastToggleProps } from "flowbite-react/lib/esm/components/Toast/ToastToggle"
-import { InputHTMLAttributes, ReactNode, useState } from "react"
+import { InputHTMLAttributes, MouseEventHandler, ReactNode, useState } from "react"
 
-import { Link, buttonStyling } from "components/dist/link"
+import Link from "next/link"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+  CardHeader,
+  CardFooter,
+} from "components/dist/ui/card"
+import { ButtonProps as _ButtonProps, Button, buttonVariants } from "components/dist/ui/button"
+import { Spinner } from "components/dist/ui/spinner"
 import { SupportedCurrencies, getCurrencySymbol, getPrice } from "@/lib/intl"
+import { cn } from "@/lib/utils"
 
 export const MissingData = ({
   filledIn,
@@ -51,49 +60,41 @@ export function PricingCard({
 
   return (
     <Card>
-      <h5 className="mb-4 text-xl font-medium text-gray-900 dark:text-white">{title}</h5>
-      <div className="flex items-baseline justify-center text-gray-900 dark:text-white">
-        {!["usd", "gbp"].includes(currency) && (
-          <span className="text-xs font-semibold">{currency.toUpperCase()}</span>
-        )}
-        <span className="text-5xl font-extrabold tracking-tight">
-          {getCurrencySymbol(currency)}
-          {isPro ? getPrice(currency) : 0}
-        </span>
-        <span className="text-md ml-1 font-normal text-gray-500 dark:text-gray-400">/year</span>
-      </div>
-      <ul className="my-7 space-y-5 text-gray-900 dark:text-white">
-        {features.map((feature, idx) => (
-          <li key={idx} className="flex space-x-3 text-base font-normal leading-tight">
-            <CheckIcon className="-mb-1 mr-4 inline-block w-5 text-green-300" />
-            {feature}
-          </li>
-        ))}
-        {!isPro &&
-          freeNonFeatures.map((nonFeature, idx) => (
-            <li
-              key={idx}
-              className="flex space-x-3 text-base font-normal leading-tight text-gray-500 line-through decoration-gray-500 dark:text-gray-400"
-            >
-              <XMarkIcon className="-mb-1 mr-4 inline-block w-5 text-red-300" />
-              {nonFeature}
+      <CardTitle>{title}</CardTitle>
+      <CardContent>
+        <div className="flex items-baseline justify-center text-gray-900 dark:text-white">
+          {!["usd", "gbp"].includes(currency) && (
+            <span className="text-xs font-semibold">{currency.toUpperCase()}</span>
+          )}
+          <span className="text-5xl font-extrabold tracking-tight">
+            {getCurrencySymbol(currency)}
+            {isPro ? getPrice(currency) : 0}
+          </span>
+          <span className="text-md ml-1 font-normal text-gray-500 dark:text-gray-400">/year</span>
+        </div>
+        <ul className="my-7 space-y-5 text-gray-900 dark:text-white">
+          {features.map((feature, idx) => (
+            <li key={idx} className="flex space-x-3 text-base font-normal leading-tight">
+              <CheckIcon className="-mb-1 mr-4 inline-block w-5 text-green-300" />
+              {feature}
             </li>
           ))}
-      </ul>
-      {button}
+          {!isPro &&
+            freeNonFeatures.map((nonFeature, idx) => (
+              <li
+                key={idx}
+                className="flex space-x-3 text-base font-normal leading-tight text-gray-500 line-through decoration-gray-500 dark:text-gray-400"
+              >
+                <XMarkIcon className="-mb-1 mr-4 inline-block w-5 text-red-300" />
+                {nonFeature}
+              </li>
+            ))}
+        </ul>
+      </CardContent>
+      {button && <CardFooter>{button}</CardFooter>}
     </Card>
   )
 }
-
-export const EmailSentToast = ({ onDismiss }: { onDismiss?: ToastToggleProps["onDismiss"] }) => (
-  <Toast className="fixed bottom-5 right-5">
-    <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-500 dark:bg-cyan-800 dark:text-cyan-200">
-      <EnvelopeIcon className="h-5 w-5" />
-    </div>
-    <div className="ml-3 text-sm font-normal">Your message has been sent.</div>
-    <Toast.Toggle onDismiss={onDismiss} />
-  </Toast>
-)
 
 const LoadingButtonInner = ({
   children,
@@ -102,7 +103,7 @@ const LoadingButtonInner = ({
   children: ReactNode
   className?: string
 }) => (
-  <div className={`${className} ${buttonStyling} relative cursor-wait`}>
+  <div className={`${className} relative cursor-wait`}>
     <div className="absolute left-1/2 -translate-x-1/2">
       <Spinner />
     </div>
@@ -116,19 +117,23 @@ type SubmitProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "childr
 }
 export function LoadingSubmitButton({ loading, children, ...props }: SubmitProps) {
   if (loading)
-    return <LoadingButtonInner className={props.className}>{children}</LoadingButtonInner>
+    return (
+      <LoadingButtonInner className={cn(buttonVariants({ variant: "outline" }), props.className)}>
+        {children}
+      </LoadingButtonInner>
+    )
   else
     return (
       <input
         {...props}
-        className={`${props.className} ${buttonStyling}`}
+        className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer", props.className)}
         type="submit"
         value={children}
       />
     )
 }
 
-type ButtonProps = FlowbiteButtonProps &
+type ButtonProps = _ButtonProps &
   (
     | { loadingImmediately: true }
     | {
@@ -144,14 +149,14 @@ export function LoadingButton(props: ButtonProps) {
 export function _LoadingButton({
   loading,
   ...props
-}: FlowbiteButtonProps & {
+}: _ButtonProps & {
   loading: boolean
 }) {
   if (loading)
     return <LoadingButtonInner className={props.className}>{props.children}</LoadingButtonInner>
   else return <Button {...props}></Button>
 }
-function LoadingButtonImmediately(props: FlowbiteButtonProps) {
+function LoadingButtonImmediately(props: _ButtonProps) {
   const [loading, setLoading] = useState(false)
 
   if (loading)

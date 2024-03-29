@@ -1,6 +1,7 @@
 import { XMarkIcon } from "@heroicons/react/24/solid"
 import { BlobProvider } from "@react-pdf/renderer"
-import { Button, Spinner } from "flowbite-react"
+import { Button } from "components/dist/ui/button"
+import { Spinner } from "components/dist/ui/spinner"
 import { useRef, useState } from "react"
 import { Document, Page } from "react-pdf"
 

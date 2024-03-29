@@ -1,4 +1,4 @@
-import { Spinner } from "flowbite-react"
+import { Spinner } from "components/dist/ui/spinner"
 import NextLink from "next/link"
 import { ComponentProps, useState } from "react"
 import { twMerge } from "tailwind-merge"

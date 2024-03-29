@@ -52,3 +52,16 @@ export function getCountryFlag(country: SupportedCountries) {
       return "🇦🇺"
   }
 }
+
+export function getCountryName(country: SupportedCountries) {
+  switch (country) {
+    case "us":
+      return "United States"
+    case "ca":
+      return "Canada"
+    case "gb":
+      return "United Kingdom"
+    case "au":
+      return "Australia"
+  }
+}

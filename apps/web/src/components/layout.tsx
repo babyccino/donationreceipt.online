@@ -4,7 +4,6 @@ import {
   Bars3BottomLeftIcon,
   BuildingOfficeIcon,
   ChatBubbleLeftEllipsisIcon,
-  ChevronDownIcon,
   DocumentTextIcon,
   EnvelopeIcon,
   GlobeAltIcon,
@@ -22,16 +21,25 @@ import { signIn, signOut } from "next-auth/react"
 import Link from "next/link"
 import { NextRouter, useRouter } from "next/router"
 import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
-import { Dropdown } from "flowbite-react"
 
+import { SupportedCountries, getCountryFlag, getCountryName, supportedCountries } from "@/lib/intl"
 import { subscribe } from "@/lib/util/request"
 import { DataType as SwitchCompanyDataType } from "@/pages/api/switch-company"
 import { DataType as SwitchCountryDataType } from "@/pages/api/switch-country"
+import { Button } from "components/dist/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "components/dist/ui/select"
 import { fetchJsonData } from "utils/dist/request"
-import { SupportedCountries, getCountryFlag, supportedCountries } from "@/lib/intl"
+import { getCurves } from "crypto"
 
 export type LayoutProps = {
   session: Session | null
+  // id is the account id not the realm id of the associated company
   companies?: { companyName: string; id: string }[] | null
   selectedAccountId?: string | null
 }
@@ -48,10 +56,6 @@ export default function Layout(
   const [loading, setLoading] = useState(false)
 
   const companies = props.companies?.length ? props.companies : undefined
-  const otherCompanies = companies?.filter(company => company.id !== props.selectedAccountId)
-  const companyName =
-    companies?.find(company => company.id === props.selectedAccountId)?.companyName ??
-    "Select Company"
   const country = session?.user.country as SupportedCountries | undefined
 
   useEffect(() => {
@@ -71,15 +75,14 @@ export default function Layout(
   return (
     <div className="relative flex flex-col sm:flex-row">
       <header>
-        <button
+        <Button
+          className="sm:hidden"
           aria-controls="separator-sidebar"
-          type="button"
-          className="ml-3 mt-2 inline-flex items-center rounded-lg p-2 text-sm text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 sm:hidden dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
           onClick={() => setShowSidebar(true)}
         >
           <span className="sr-only">Open sidebar</span>
           <Bars3BottomLeftIcon className="h-6 w-6" />
-        </button>
+        </Button>
         {showSidebar && (
           <div
             className="animate-fadeIn fixed inset-0 z-20 bg-black/40"
@@ -89,70 +92,104 @@ export default function Layout(
         <nav
           id="separator-sidebar"
           className={
-            "fixed left-0 top-0 z-40 flex h-screen w-64 flex-col justify-between overflow-y-auto bg-gray-50 px-3 py-4 transition-transform sm:translate-x-0 dark:bg-gray-800 " +
+            "bg-card fixed left-0 top-0 z-40 flex h-screen w-64 flex-col justify-between overflow-y-auto px-3 py-4 transition-transform sm:translate-x-0" +
             (showSidebar ? "" : " -translate-x-full")
           }
           aria-label="Sidebar"
         >
           {companies && (
-            <>
-              <Companies
-                companyName={companyName}
-                otherCompanies={otherCompanies}
-                router={router}
-              />
-              <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
-            </>
+            <Companies
+              companyId={session?.accountId as string}
+              companies={companies}
+              router={router}
+            />
           )}
-          <ul className="space-y-2 font-medium">
+          <ul className="font-medium">
             {user && (
               <>
-                <NavLink link="/" logo={<RectangleGroupIcon />} label="Dashboard" />
-                <NavLink link="/items" logo={<ShoppingBagIcon />} label="Items" />
-                <NavLink link="/details" logo={<RectangleStackIcon />} label="Details" />
-                <NavLink link="/generate-receipts" logo={<TableCellsIcon />} label="Receipts" />
-                <NavLink link="/email" logo={<EnvelopeIcon />} label="Email" />
-                <NavLink link="/account" logo={<UserCircleIcon />} label="Account" />
-                <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
+                <NavItem href="/" highlight={router.asPath === "/"}>
+                  <RectangleGroupIcon className="h-4 w-4" />
+                  Dashboard
+                </NavItem>
+                <NavItem href="/items" highlight={router.asPath === "/items"}>
+                  <ShoppingBagIcon className="h-4 w-4" />
+                  Items
+                </NavItem>
+                <NavItem href="/details" highlight={router.asPath === "/details"}>
+                  <RectangleStackIcon className="h-4 w-4" />
+                  Details
+                </NavItem>
+                <NavItem
+                  href="/generate-receipts"
+                  highlight={router.asPath === "/generate-receipts"}
+                >
+                  <TableCellsIcon className="h-4 w-4" />
+                  Receipts
+                </NavItem>
+                <NavItem href="/email" highlight={router.asPath === "/email"}>
+                  <EnvelopeIcon className="h-4 w-4" />
+                  Email
+                </NavItem>
+                <NavItem href="/account" highlight={router.asPath === "/account"}>
+                  <UserCircleIcon className="h-4 w-4" />
+                  Account
+                </NavItem>
               </>
             )}
 
             {user ? (
-              <NavAnchor
+              <NavItem
                 href="/api/auth/signout"
-                logo={<ArrowLeftOnRectangleIcon />}
+                highlight={router.asPath === "/api/auth/signout"}
                 onClick={e => {
                   e.preventDefault()
                   signOut()
                 }}
-                label="Sign Out"
-              />
+              >
+                <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                Sign Out
+              </NavItem>
             ) : (
-              <NavLink
-                link={`/auth/signin?callback=${router.asPath}`}
-                logo={<ArrowRightOnRectangleIcon />}
-                label="Sign In"
-              />
+              <NavItem
+                href={`/auth/signin?callback=${router.asPath}`}
+                highlight={router.asPath === "/auth/signin"}
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                Sign In
+              </NavItem>
             )}
             {user && (
-              <NavAnchor
-                href="#"
+              <NavItem
+                href="api/stripe/create-checkout-session"
                 onClick={e => {
                   e.preventDefault()
                   subscribe(router.pathname)
                 }}
-                logo={<UserPlusIcon />}
-                label="Upgrade To Pro"
-              />
+              >
+                <UserPlusIcon className="h-4 w-4" />
+                Upgrade To Pro
+              </NavItem>
             )}
 
-            <hr className="!my-4 mx-4 border-t border-gray-200 dark:border-gray-700" />
-
-            <NavLink link="/info" logo={<InformationCircleIcon />} label="Info" />
-            <NavLink link="/terms/terms" logo={<GlobeAltIcon />} label="Terms and Conditions" />
-            <NavLink link="/terms/privacy" logo={<DocumentTextIcon />} label="Privacy Policy" />
+            <hr className="mt-5 border-none" />
+            <h4 className="text-muted-foreground mb-1 ml-3 text-xs font-light">Legal</h4>
+            <NavItem href="/info" highlight={router.asPath === "/info"}>
+              <InformationCircleIcon className="h-4 w-4" />
+              Info
+            </NavItem>
+            <NavItem href="/terms/terms" highlight={router.asPath === "/terms/terms"}>
+              <GlobeAltIcon className="h-4 w-4" />
+              Terms and Conditions
+            </NavItem>
+            <NavItem href="/terms/privacy" highlight={router.asPath === "/terms/privacy"}>
+              <DocumentTextIcon className="h-4 w-4" />
+              Privacy Policy
+            </NavItem>
             {user && (
-              <NavLink link="/support" logo={<ChatBubbleLeftEllipsisIcon />} label="Support" />
+              <NavItem href="/support" highlight={router.asPath === "/support"}>
+                <ChatBubbleLeftEllipsisIcon className="h-4 w-4" />
+                Support
+              </NavItem>
             )}
           </ul>
           {country && (
@@ -175,6 +212,31 @@ export default function Layout(
   )
 }
 
+const NavItem = ({
+  children,
+  href,
+  onClick,
+  highlight,
+}: {
+  children: ReactNode
+  href: string
+  onClick?: MouseEventHandler
+  highlight?: boolean
+}) => (
+  <Button
+    className={
+      "h-8 w-full justify-start gap-2 px-2 py-0 leading-3" +
+      (highlight ? " text-primary hover:text-primary" : " text-foreground/70 font-light")
+    }
+    variant="ghost"
+    asChild
+  >
+    <Link href={href} onClick={onClick}>
+      {children}
+    </Link>
+  </Button>
+)
+
 const SwitchCountry = ({
   currentCountry,
   router,
@@ -182,15 +244,14 @@ const SwitchCountry = ({
   currentCountry: SupportedCountries
   router: NextRouter
 }) => (
-  <Dropdown
-    label={<span className="text-2xl">{getCountryFlag(currentCountry)}</span>}
-    placement="top"
-    color="dark"
-  >
-    {supportedCountries
-      .filter(supportedCountry => supportedCountry !== currentCountry)
-      .map(supportedCountry => (
-        <Dropdown.Item
+  <Select defaultValue={currentCountry}>
+    <SelectTrigger className="w-auto">
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      {supportedCountries.map(supportedCountry => (
+        <SelectItem
+          value={supportedCountry}
           key={supportedCountry}
           onClick={async () => {
             const res = await fetchJsonData("/api/switch-country", {
@@ -200,131 +261,50 @@ const SwitchCountry = ({
             router.replace(router.asPath)
           }}
         >
-          {getCountryFlag(supportedCountry)} {supportedCountry.toUpperCase()}
-        </Dropdown.Item>
+          <span className="mr-2">
+            {getCountryFlag(supportedCountry)} {getCountryName(supportedCountry)}
+          </span>
+        </SelectItem>
       ))}
-  </Dropdown>
+    </SelectContent>
+  </Select>
 )
 
 const Companies = ({
-  companyName,
-  otherCompanies,
+  companyId,
+  companies,
   router,
 }: {
-  companyName: string
-  otherCompanies?: { companyName: string; id: string }[]
+  companyId: string
+  companies?: { companyName: string; id: string }[]
   router: NextRouter
 }) => (
-  <div className="group/companies relative">
-    <button
-      type="button"
-      className="flex w-full flex-col items-center text-base text-gray-900"
-      aria-controls="open-companies-dropdown"
-    >
-      <div className="group/activecompany relative flex w-full flex-1 flex-nowrap items-center justify-between overflow-hidden rounded-lg p-2 text-left transition duration-100 hover:bg-gray-100 rtl:text-right dark:text-white dark:hover:bg-gray-700">
-        <div className="flex flex-shrink flex-row items-center whitespace-nowrap">
-          <div className="h-6 w-6 text-gray-500 transition duration-100 group-hover/activecompany:text-gray-900 dark:text-gray-400 dark:group-hover/activecompany:text-white">
-            <BuildingOfficeIcon />
-          </div>
-          <span className="ml-3 flex-1 whitespace-nowrap">{companyName}</span>
-        </div>
-        <div className="absolute right-0 inline-block bg-gray-50 pl-1 text-gray-500 transition duration-100 group-hover/activecompany:bg-gray-100 dark:bg-gray-800 dark:text-white dark:group-hover/activecompany:bg-gray-700">
-          <ChevronDownIcon className=" h-5 w-5" stroke="currentColor" strokeWidth={2} />
-        </div>
-      </div>
-    </button>
-    <ul
-      id="dropdown-example"
-      className="hidden w-full space-y-2 py-2 group-focus-within/companies:block"
-    >
-      {otherCompanies?.map(({ companyName, id: accountId }) => (
-        <li key={accountId}>
-          <button
-            onClick={async () => {
-              const res = await fetchJsonData("/api/switch-company", {
-                method: "POST",
-                body: { accountId } satisfies SwitchCompanyDataType,
-              })
+  <Select defaultValue={companyId}>
+    <SelectTrigger className="mb-4">
+      <SelectValue placeholder="Select Company"></SelectValue>
+    </SelectTrigger>
+    <SelectContent>
+      {companies?.map(({ companyName, id: accountId }) => (
+        <SelectItem
+          value={accountId}
+          key={accountId}
+          onClick={async () => {
+            const res = await fetchJsonData("/api/switch-company", {
+              method: "POST",
+              body: { accountId } satisfies SwitchCompanyDataType,
+            })
 
-              if (res.redirect) router.push(res.destination)
-              else router.replace(router.asPath)
-            }}
-            className="group flex w-full items-center rounded-lg p-2 pl-11 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-          >
-            {companyName}
-          </button>
-        </li>
-      ))}
-      <li>
-        <button
-          className="group flex w-full items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-          onClick={() => signIn("QBO")}
+            if (res.redirect) router.push(res.destination)
+            else router.replace(router.asPath)
+          }}
         >
-          <div className="h-6 w-6 text-gray-500 transition duration-100 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
-            <PlusSmallIcon />
-          </div>
-          <span className="ml-3 flex-1 whitespace-nowrap text-left">Add Account</span>
-        </button>
-      </li>
-    </ul>
-  </div>
-)
-
-type NavInnerProps = {
-  logo: JSX.Element
-  label: string
-  notification?: string
-  extra?: string
-}
-
-const NavLink = ({
-  link,
-  ...props
-}: {
-  link: string
-} & NavInnerProps) => (
-  <li>
-    <Link
-      href={link}
-      className="group flex items-center rounded-lg p-2 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-    >
-      <NavItemInner {...props} />
-    </Link>
-  </li>
-)
-const NavAnchor = ({
-  onClick,
-  href,
-  ...props
-}: {
-  onClick?: MouseEventHandler<HTMLAnchorElement>
-  href: string
-} & NavInnerProps) => (
-  <li>
-    <a
-      href={href}
-      onClick={onClick}
-      className="group flex items-center rounded-lg p-2 text-gray-900 transition duration-100 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-    >
-      <NavItemInner {...props} />
-    </a>
-  </li>
-)
-const NavItemInner = ({ logo, label, notification, extra }: NavInnerProps) => (
-  <>
-    <div className="h-5 w-5 text-gray-500 transition duration-100 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white">
-      {logo}
-    </div>
-    <span className="ml-3 flex-1 whitespace-nowrap text-base">{label}</span>
-    {notification ? (
-      <span className="ml-3 inline-flex h-3 w-3 items-center justify-center rounded-full bg-blue-100 p-3 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-        {notification}
-      </span>
-    ) : null}
-    {extra ? (
-      <span className="ml-3 inline-flex items-center justify-center rounded-full bg-gray-200 px-2 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-        {extra}
-      </span>
-    ) : null}
-  </>
+          {companyName}
+        </SelectItem>
+      ))}
+      <SelectItem value="add-account" onClick={() => signIn("QBO")}>
+        <PlusSmallIcon className="h-4 w-4" />
+        Add Account
+      </SelectItem>
+    </SelectContent>
+  </Select>
 )

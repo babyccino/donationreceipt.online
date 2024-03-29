@@ -2,7 +2,12 @@
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
     "lib": ["dom", "ES2015"],
-    "types": ["node"]
+    "baseUrl": ".",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*.tsx", "src/**/*.ts"],
   "exclude": ["dist", "build", "node_modules"]

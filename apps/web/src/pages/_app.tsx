@@ -11,6 +11,8 @@ import { ErrorBoundary } from "@/components/error"
 import { ErrorDisplay } from "@/components/error-display"
 import Layout, { LayoutProps } from "@/components/layout"
 import { config } from "@/lib/env"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "components/dist/ui/toaster"
 
 export default function App({ Component, pageProps }: AppProps<LayoutProps & Record<string, any>>) {
   const pageTitle =
@@ -74,15 +76,19 @@ export default function App({ Component, pageProps }: AppProps<LayoutProps & Rec
         <title>DonationReceipt.Online</title>
         <meta name="description" content="Expedite your organisation's year-end!" />
       </Head>
-      <ErrorBoundary>
-        <Layout
-          session={pageProps.session}
-          companies={pageProps.companies}
-          selectedAccountId={pageProps.selectedAccountId}
-        >
-          <Component {...pageProps} />
-        </Layout>
-      </ErrorBoundary>
+
+      <Toaster />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ErrorBoundary>
+          <Layout
+            session={pageProps.session}
+            companies={pageProps.companies}
+            selectedAccountId={pageProps.selectedAccountId}
+          >
+            <Component {...pageProps} />
+          </Layout>
+        </ErrorBoundary>
+      </ThemeProvider>
     </>
   )
 }

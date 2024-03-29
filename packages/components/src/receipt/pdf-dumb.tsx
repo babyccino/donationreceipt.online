@@ -1,5 +1,5 @@
 import { ArrowDownTrayIcon, PlusIcon } from "@heroicons/react/24/solid"
-import { Spinner } from "flowbite-react"
+import { Spinner } from "components/dist/ui/spinner"
 
 import { buttonStyling } from "../link"
 

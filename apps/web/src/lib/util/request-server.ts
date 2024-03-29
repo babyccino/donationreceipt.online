@@ -1,7 +1,7 @@
 import { captureException } from "@sentry/nextjs"
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next"
 import { Session, getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 

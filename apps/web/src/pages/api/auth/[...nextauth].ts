@@ -1,6 +1,6 @@
 import NextAuth, { CallbacksOptions, NextAuthOptions, Session } from "next-auth"
 import { OAuthConfig } from "next-auth/providers"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import { DrizzleAdapter } from "@/lib/auth/drizzle-adapter"
 import { config } from "@/lib/env"

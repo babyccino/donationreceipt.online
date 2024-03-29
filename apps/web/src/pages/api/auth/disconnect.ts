@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { NextApiHandler } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import { z } from "zod"
 
 import { serverSignIn } from "@/lib/auth/next-auth-helper-server"

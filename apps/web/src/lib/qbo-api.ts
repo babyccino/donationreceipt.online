@@ -1,4 +1,4 @@
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import { config } from "@/lib/env"
 import { formatDateHtmlReverse } from "utils/dist/date"

@@ -2,7 +2,7 @@ import { and, desc, eq, isNotNull } from "drizzle-orm"
 import { Label, TextInput } from "flowbite-react"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import { useRouter } from "next/router"
 import { FormEventHandler, useRef, useState } from "react"
 

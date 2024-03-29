@@ -36,6 +36,7 @@ import {
 } from "components/dist/ui/select"
 import { fetchJsonData } from "utils/dist/request"
 import { getCurves } from "crypto"
+import { DarkModeToggle } from "./dark-mode-toggle"
 
 export type LayoutProps = {
   session: Session | null
@@ -192,11 +193,14 @@ export default function Layout(
               </NavItem>
             )}
           </ul>
-          {country && (
-            <div className="mt-auto p-2 pt-6 text-right">
-              <SwitchCountry currentCountry={country} router={router} />
-            </div>
-          )}
+          <div className="mt-auto space-y-2">
+            <DarkModeToggle />
+            {country && (
+              <div className="text-right">
+                <SwitchCountry currentCountry={country} router={router} />
+              </div>
+            )}
+          </div>
         </nav>
       </header>
       <div className="hidden w-64 sm:block" />

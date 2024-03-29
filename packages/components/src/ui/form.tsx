@@ -170,3 +170,8 @@ export {
   FormMessage,
   FormField,
 }
+
+export type RenderFunc<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> = ControllerProps<TFieldValues, TName>["render"]

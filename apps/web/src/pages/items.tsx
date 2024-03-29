@@ -5,8 +5,8 @@ import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/router"
-import { ChangeEventHandler, FormEventHandler, useMemo, useRef, useState } from "react"
-import { FieldPath, useForm, ControllerProps, FieldValues } from "react-hook-form"
+import { useMemo, useState } from "react"
+import { useForm } from "react-hook-form"
 import { ApiError } from "utils/dist/error"
 import { z } from "zod"
 
@@ -35,6 +35,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  RenderFunc,
 } from "components/dist/ui/form"
 import {
   Select,
@@ -44,7 +45,6 @@ import {
   SelectValue,
 } from "components/dist/ui/select"
 import { Switch } from "components/dist/ui/switch"
-import { Textarea } from "components/dist/ui/textarea"
 import { accounts, db, sessions } from "db"
 import {
   DateRange,
@@ -55,7 +55,6 @@ import {
   getDateRangeFromType,
   startOfPreviousYear,
   startOfThisYear,
-  utcEpoch,
 } from "utils/dist/date"
 import { fetchJsonData } from "utils/dist/request"
 
@@ -65,10 +64,6 @@ const schema = z.object({
   items: z.array(z.string()).min(1, { message: "Please select at least one item" }),
 })
 type Schema = z.infer<typeof schema>
-type RenderFunc<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> = ControllerProps<TFieldValues, TName>["render"]
 
 const DumbDatePicker = () => (
   <div className="relative w-full text-gray-700">

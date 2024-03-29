@@ -20,6 +20,25 @@ export const endOfThisYear = () => new Date(endOfThisYearHtml() + "T00:00:00.000
 export const getCurrentDateHtml = () => formatDateHtml(new Date())
 export const utcEpoch = () => new Date(0)
 
+export function getDateRangeFromType(dateRangeType: DateRangeType): DateRange {
+  switch (dateRangeType) {
+    case DateRangeType.ThisYear:
+      return { startDate: startOfThisYear(), endDate: endOfThisYear() }
+    case DateRangeType.Ytd:
+      return { startDate: startOfThisYear(), endDate: new Date() }
+    case DateRangeType.AllTime:
+      // TODO update before 2049/12/31
+      return { startDate: utcEpoch(), endDate: new Date("2050/1/1") }
+    case DateRangeType.LastYear:
+    case DateRangeType.Custom:
+    default:
+      return {
+        startDate: startOfPreviousYear(),
+        endDate: endOfPreviousYear(),
+      }
+  }
+}
+
 export const oneHrFromNow = () => new Date(Date.now() + 1000 * 60 * 60)
 
 export enum DateRangeType {

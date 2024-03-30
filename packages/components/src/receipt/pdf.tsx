@@ -10,10 +10,11 @@ import {
 } from "@react-pdf/renderer"
 
 import { formatDate } from "utils/dist/date"
-import { buttonStyling } from "../link"
-import { downloadReceiptInner, downloadReceiptLoadingInner } from "./pdf-dumb"
 import { sharedStyle } from "./sharedStyle"
 import { EmailProps } from "./types"
+import { cn } from "@/utils"
+import { buttonVariants } from "@/ui/button"
+import { Spinner } from "@/ui/spinner"
 
 const styleSheet = StyleSheet.create({
   ...sharedStyle,
@@ -196,8 +197,8 @@ export const DownloadReceipt = ({
   <PDFDownloadLink
     document={<ReceiptPdfDocument {...receiptProps} />}
     fileName={fileName}
-    className={buttonStyling + " relative"}
+    className={cn(buttonVariants({ variant: "ghost" }), "relative")}
   >
-    {({ loading }) => (loading ? downloadReceiptLoadingInner : downloadReceiptInner)}
+    {({ loading }) => (loading ? <Spinner /> : "Download")}
   </PDFDownloadLink>
 )

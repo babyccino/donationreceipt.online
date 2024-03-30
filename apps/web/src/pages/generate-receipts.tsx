@@ -2,12 +2,12 @@ import { ArrowRightIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid"
 import { ColumnDef } from "@tanstack/react-table"
 import download from "downloadjs"
 import { and, eq, sql } from "drizzle-orm"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import dynamic from "next/dynamic"
 import { ReactNode, useMemo, useState } from "react"
 import { twMerge } from "tailwind-merge"
-import { ApiError } from "utils/dist/error"
 
 import { LayoutProps } from "@/components/layout"
 import { LoadingButton, MissingData } from "@/components/ui"
@@ -63,6 +63,7 @@ import { storageBucket } from "db/dist/firebase"
 import { Donation } from "types"
 import { getDonationRange, getThisYear } from "utils/dist/date"
 import { downloadImageAndConvertToPng } from "utils/dist/db-helper"
+import { ApiError } from "utils/dist/error"
 import { getRandomBalance, getRandomName } from "utils/dist/etc"
 import { getResponseContent } from "utils/dist/request"
 
@@ -73,8 +74,8 @@ const DownloadReceipt = dynamic(
     ssr: false,
   },
 )
-const ShowReceipt = dynamic(() => import("../components/pdf").then(imp => imp.ShowReceipt), {
-  loading: () => <Spinner />,
+const ReceiptDisplay = dynamic(() => import("../components/pdf").then(imp => imp.ReceiptDisplay), {
+  loading: () => null,
   ssr: false,
 })
 
@@ -95,10 +96,13 @@ type Props = (
 ) &
   LayoutProps
 
+const receiptAtom = atom<EmailProps | null>(null)
+
 export const makeColumns = (
   doneeInfo: Omit<DoneeInfo, "accountId" | "createdAt" | "id" | "updatedAt">,
   currency: SupportedCurrencies,
   donationDate: string,
+  sortingEnabled: boolean = true,
 ) => {
   const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency })
   return [
@@ -108,10 +112,14 @@ export const makeColumns = (
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={
+              sortingEnabled
+                ? () => column.toggleSorting(column.getIsSorted() === "asc")
+                : undefined
+            }
           >
             Name
-            <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+            {sortingEnabled && <ArrowsUpDownIcon className="ml-2 h-4 w-4" />}
           </Button>
         )
       },
@@ -122,10 +130,14 @@ export const makeColumns = (
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={
+              sortingEnabled
+                ? () => column.toggleSorting(column.getIsSorted() === "asc")
+                : undefined
+            }
           >
             Email
-            <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+            {sortingEnabled && <ArrowsUpDownIcon className="ml-2 h-4 w-4" />}
           </Button>
         )
       },
@@ -135,11 +147,16 @@ export const makeColumns = (
       header: ({ column }) => {
         return (
           <Button
+            className="block w-full text-right"
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={
+              sortingEnabled
+                ? () => column.toggleSorting(column.getIsSorted() === "asc")
+                : undefined
+            }
           >
             Total
-            <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+            {sortingEnabled && <ArrowsUpDownIcon className="ml-2 h-4 w-4" />}
           </Button>
         )
       },
@@ -152,6 +169,7 @@ export const makeColumns = (
     },
     {
       id: "actions",
+      header: "Actions",
       enableHiding: false,
       cell: ({ row }) => {
         const entry = row.original
@@ -188,6 +206,21 @@ export const makeColumns = (
       },
     },
   ] as ColumnDef<Donation>[]
+}
+
+const ShowReceipt = ({ receiptProps }: { receiptProps: EmailProps }) => {
+  const setReceipt = useSetAtom(receiptAtom)
+
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        setReceipt(receiptProps)
+      }}
+    >
+      Show receipt
+    </Button>
+  )
 }
 
 const ReceiptLimitCard = () => (
@@ -370,6 +403,8 @@ function DataTable({ columns, data }: DataTableProps) {
     </div>
   )
 }
+
+// TODO this thing is ugly
 function DownloadAllFiles() {
   const [loading, setLoading] = useState(false)
 
@@ -413,11 +448,13 @@ function WithTable(props: {
   donationRange: string
 }) {
   const { doneeInfo, subscribed, counterStart, donations } = props
-
+  const [receipt, setReceipt] = useAtom(receiptAtom)
   const currentYear = getThisYear()
-  const columns = makeColumns(doneeInfo, "cad", new Date().toISOString())
+  const columns = makeColumns(doneeInfo, "cad", new Date().toISOString(), subscribed)
   return (
     <section className="flex h-full w-full flex-col items-center p-8">
+      {receipt && <ReceiptDisplay receiptProps={receipt} close={() => setReceipt(null)} />}
+      {/* TODO this thing is also ugly  */}
       {subscribed && (
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <DownloadAllFiles />
@@ -428,7 +465,7 @@ function WithTable(props: {
         </div>
       )}
       <Alert className="mb-4 sm:hidden">
-        <ArrowRightIcon className="mr-2 h-6 w-6" />
+        <ArrowRightIcon className="mr-2 h-4 w-4" />
         <AlertDescription>Scroll right to view/download individual receipts</AlertDescription>
       </Alert>
       <div className="w-full max-w-3xl overflow-x-auto overflow-y-hidden sm:rounded-lg">

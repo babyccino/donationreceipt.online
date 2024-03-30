@@ -147,7 +147,7 @@ export const makeColumns = (
       header: ({ column }) => {
         return (
           <Button
-            className="block w-full text-right"
+            className="w-full justify-end"
             variant="ghost"
             onClick={
               sortingEnabled

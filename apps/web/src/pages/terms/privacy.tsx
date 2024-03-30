@@ -1,18 +1,12 @@
-import { Accordion, Alert } from "flowbite-react"
 import { ReactNode } from "react"
 
+import { H1, H3, InterpretationDefinitions, P, Q, Ul, email } from "@/components/agreements"
 import {
-  H1,
-  H3,
-  InterpretationDefinitions,
-  P,
-  Q,
-  Ul,
-  companyName,
-  email,
-} from "@/components/agreements"
-
-const { Panel, Title, Content } = Accordion
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "components/dist/ui/accordion"
 
 const H4 = ({ children }: { children: ReactNode }) => (
   <h4 className="mb-2 inline-block text-lg font-medium tracking-tight text-gray-900 dark:text-gray-400">
@@ -78,10 +72,10 @@ const Purposes = () => (
 )
 
 const PersonalData = () => (
-  <Accordion flush collapseAll>
-    <Panel>
-      <Title>Types of Data Collected</Title>
-      <Content>
+  <Accordion type="single" collapsible className="ml-4">
+    <AccordionItem value="types of data collected">
+      <AccordionTrigger>Types of Data Collected</AccordionTrigger>
+      <AccordionContent>
         <H3>Personal Data</H3>
         <P>
           While using Our Service, We may ask You to provide Us with certain personally identifiable
@@ -136,11 +130,11 @@ const PersonalData = () => (
         </P>
         <P>We use Persistent Cookies for the purposes set out below:</P>
         <Purposes />
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Use of Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Use of Your Personal Data">
+      <AccordionTrigger>Use of Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <P>The Company may use Personal Data for the following purposes:</P>
         <Ul>
           <li>
@@ -213,11 +207,11 @@ const PersonalData = () => (
             other purpose with Your consent.
           </li>
         </Ul>
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Retention of Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Retention of Your Personal Data">
+      <AccordionTrigger>Retention of Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <P>
           The Company will retain Your Personal Data only for as long as is necessary for the
           purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the
@@ -231,11 +225,11 @@ const PersonalData = () => (
           strengthen the security or to improve the functionality of Our Service, or We are legally
           obligated to retain this data for longer time periods.
         </P>
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Transfer of Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Transfer of Your Personal Data">
+      <AccordionTrigger>Transfer of Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <P>
           Your information, including Personal Data, is processed at the Company{"'"}s operating
           offices and in any other places where the parties involved in the processing are located.
@@ -253,11 +247,11 @@ const PersonalData = () => (
           will take place to an organization or a country unless there are adequate controls in
           place including the security of Your data and other personal information.
         </P>
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Delete Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Delete Your Personal Data">
+      <AccordionTrigger>Delete Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <P>
           You have the right to delete or request that We assist in deleting the Personal Data that
           We have collected about You.
@@ -276,11 +270,11 @@ const PersonalData = () => (
           Please note, however, that We may need to retain certain information when we have a legal
           obligation or lawful basis to do so.
         </P>
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Disclosure of Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Disclosure of Your Personal Data">
+      <AccordionTrigger>Disclosure of Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <H3>Business Transactions</H3>
         <P>
           If the Company is involved in a merger, acquisition or asset sale, Your Personal Data may
@@ -305,19 +299,19 @@ const PersonalData = () => (
           <li>Protect the personal safety of Users of the Service or the public</li>
           <li>Protect against legal liability</li>
         </Ul>
-      </Content>
-    </Panel>
-    <Panel>
-      <Title>Security of Your Personal Data</Title>
-      <Content>
+      </AccordionContent>
+    </AccordionItem>
+    <AccordionItem value="Security of Your Personal Data">
+      <AccordionTrigger>Security of Your Personal Data</AccordionTrigger>
+      <AccordionContent>
         <P>
           The security of Your Personal Data is important to Us, but remember that no method of
           transmission over the Internet, or method of electronic storage is 100% secure. While We
           strive to use commercially acceptable means to protect Your Personal Data, We cannot
           guarantee its absolute security.
         </P>
-      </Content>
-    </Panel>
+      </AccordionContent>
+    </AccordionItem>
   </Accordion>
 )
 
@@ -338,17 +332,17 @@ const Privacy = () => (
         TermsFeed Privacy Policy Generator.
       </a>
     </P>
-    <Accordion flush collapseAll>
+    <Accordion type="single" collapsible>
       {InterpretationDefinitions}
-      <Panel>
-        <Title>Collecting and Using Your Personal Data</Title>
-        <Content>
+      <AccordionItem value="Collecting and Using Your Personal Data">
+        <AccordionTrigger>Collecting and Using Your Personal Data</AccordionTrigger>
+        <AccordionContent>
           <PersonalData />
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Children{"'"}s Privacy</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Children's Privacy">
+        <AccordionTrigger>Children{"'"}s Privacy</AccordionTrigger>
+        <AccordionContent>
           <P>
             Our Service does not address anyone under the age of 13. We do not knowingly collect
             personally identifiable information from anyone under the age of 13. If You are a parent
@@ -362,11 +356,11 @@ const Privacy = () => (
             country requires consent from a parent, We may require Your parent{"'"}s consent before
             We collect and use that information.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Links to Other Websites</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Links to Other Websites">
+        <AccordionTrigger>Links to Other Websites</AccordionTrigger>
+        <AccordionContent>
           <P>
             Our Service may contain links to other websites that are not operated by Us. If You
             click on a third party link, You will be directed to that third party{"'"}s site. We
@@ -376,11 +370,11 @@ const Privacy = () => (
             We have no control over and assume no responsibility for the content, privacy policies
             or practices of any third party sites or services.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Changes to this Privacy Policy</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Changes to this Privacy Policy">
+        <AccordionTrigger>Changes to this Privacy Policy</AccordionTrigger>
+        <AccordionContent>
           <P>
             We may update Our Privacy Policy from time to time. We will notify You of any changes by
             posting the new Privacy Policy on this page.
@@ -394,17 +388,17 @@ const Privacy = () => (
             You are advised to review this Privacy Policy periodically for any changes. Changes to
             this Privacy Policy are effective when they are posted on this page.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Contact Us</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Contact Us">
+        <AccordionTrigger>Contact Us</AccordionTrigger>
+        <AccordionContent>
           <P>If you have any questions about this Privacy Policy, You can contact us:</P>
           <Ul>
             <li>By email: {email}</li>
           </Ul>
-        </Content>
-      </Panel>
+        </AccordionContent>
+      </AccordionItem>
     </Accordion>
   </section>
 )

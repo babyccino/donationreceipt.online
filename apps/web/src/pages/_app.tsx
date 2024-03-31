@@ -10,9 +10,9 @@ import Head from "next/head"
 import { ErrorBoundary } from "@/components/error"
 import { ErrorDisplay } from "@/components/error-display"
 import Layout, { LayoutProps } from "@/components/layout"
-import { config } from "@/lib/env"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "components/dist/ui/toaster"
+import { config } from "@/lib/env"
+import { Toaster } from "components/dist/ui/toast"
 
 export default function App({ Component, pageProps }: AppProps<LayoutProps & Record<string, any>>) {
   const pageTitle =

@@ -76,14 +76,14 @@ export default function Layout(
   return (
     <div className="relative flex flex-col sm:flex-row">
       <header>
-        <Button
-          className="sm:hidden"
+        <button
+          className="p-4 sm:hidden"
           aria-controls="separator-sidebar"
           onClick={() => setShowSidebar(true)}
         >
           <span className="sr-only">Open sidebar</span>
           <Bars3BottomLeftIcon className="h-6 w-6" />
-        </Button>
+        </button>
         {showSidebar && (
           <div
             className="animate-fadeIn fixed inset-0 z-20 bg-black/40"
@@ -306,7 +306,7 @@ const Companies = ({
         </SelectItem>
       ))}
       <SelectItem value="add-account" onClick={() => signIn("QBO")}>
-        <PlusSmallIcon className="h-4 w-4" />
+        <PlusSmallIcon className="-mt-1 mr-2 inline-block h-4 w-4" />
         Add Account
       </SelectItem>
     </SelectContent>

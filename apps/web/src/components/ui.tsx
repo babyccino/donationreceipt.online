@@ -59,8 +59,10 @@ export function PricingCard({
   const title = propsTitle ?? (isPro ? "Pro Plan" : "Free Plan")
 
   return (
-    <Card>
-      <CardTitle>{title}</CardTitle>
+    <Card className="max-w-96">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
       <CardContent>
         <div className="flex items-baseline justify-center text-gray-900 dark:text-white">
           {!["usd", "gbp"].includes(currency) && (

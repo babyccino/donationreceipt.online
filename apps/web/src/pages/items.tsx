@@ -25,7 +25,7 @@ import { SerialiseDates, deSerialiseDates, serialiseDates } from "@/lib/util/nex
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DataType as ItemsApiDataType } from "@/pages/api/items"
 import { Item } from "@/types/qbo-api"
-import { Alert } from "components/dist/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "components/dist/ui/alert"
 import { Button } from "components/dist/ui/button"
 import {
   Form,
@@ -50,6 +50,7 @@ import {
   DateRange,
   DateRangeType,
   createDateRange,
+  dateRangeTypeList,
   endOfPreviousYear,
   endOfThisYear,
   getDateRangeFromType,
@@ -59,7 +60,7 @@ import {
 import { fetchJsonData } from "utils/dist/request"
 
 const schema = z.object({
-  dateRangeType: z.string({ required_error: "Please select a date range type" }),
+  dateRangeType: z.enum(dateRangeTypeList, { required_error: "Please select a date range type" }),
   customDateRange: z.object({ startDate: z.date(), endDate: z.date() }).required().optional(),
   items: z.array(z.string()).min(1, { message: "Please select at least one item" }),
 })
@@ -99,10 +100,11 @@ const DatePicker = dynamic(import("react-tailwindcss-datepicker"), {
 type Props = ({
   items: Item[]
   detailsFilledIn: boolean
-} & ({ itemsFilledIn: false } | PropsDateRange)) &
+} & PropsDateRange) &
   LayoutProps
 
 type PropsDateRange =
+  | { itemsFilledIn: false }
   | {
       itemsFilledIn: true
       selectedItems: string[]
@@ -255,10 +257,10 @@ export default function Items(serialisedProps: SerialisedProps) {
         className="m-auto my-4 flex w-full max-w-lg flex-col items-stretch justify-center p-4"
       >
         <Alert className="mb-4">
-          <span className="mb-[-0.15rem] mr-2 inline-block h-4 w-4">
-            <InformationCircleIcon />
-          </span>
-          Make sure to only choose your QuickBooks sales items which qualify as donations
+          <InformationCircleIcon className="mb-[-0.15rem] mr-2 inline-block h-4 w-4" />
+          <AlertDescription>
+            Make sure to only choose your QuickBooks sales items which qualify as donations
+          </AlertDescription>
         </Alert>
         <FormField
           control={form.control}
@@ -295,7 +297,7 @@ export default function Items(serialisedProps: SerialisedProps) {
           )}
         />
         <FormField name="dateRangeType" control={form.control} render={dateRangeCb} />
-        <LoadingSubmitButton loading={loading} color="blue" className="mb-4">
+        <LoadingSubmitButton loading={loading} className="mb-4">
           {detailsFilledIn ? "Generate Receipts" : "Enter Donee Details"}
         </LoadingSubmitButton>
       </form>

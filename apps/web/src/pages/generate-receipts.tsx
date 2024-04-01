@@ -1,12 +1,12 @@
 import { ArrowRightIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid"
-import { ColumnDef } from "@tanstack/react-table"
+import { ColumnDef, createColumnHelper } from "@tanstack/react-table"
 import download from "downloadjs"
 import { and, eq, sql } from "drizzle-orm"
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { atom, useAtom, useSetAtom } from "jotai"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
 import dynamic from "next/dynamic"
-import { ReactNode, useMemo, useState } from "react"
+import { useState } from "react"
 import { twMerge } from "tailwind-merge"
 
 import { LayoutProps } from "@/components/layout"
@@ -25,16 +25,7 @@ import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/ge
 import { subscribe } from "@/lib/util/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DotsHorizontalIcon } from "@radix-ui/react-icons"
-import {
-  ColumnFiltersState,
-  SortingState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
+import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { Link } from "components/dist/link"
 import { EmailProps } from "components/dist/receipt/types"
 import { Alert, AlertDescription } from "components/dist/ui/alert"
@@ -48,7 +39,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "components/dist/ui/dropdown-menu"
-import { Input } from "components/dist/ui/input"
 import { Spinner } from "components/dist/ui/spinner"
 import {
   Table,
@@ -66,6 +56,7 @@ import { downloadImageAndConvertToPng } from "utils/dist/db-helper"
 import { ApiError } from "utils/dist/error"
 import { getRandomBalance, getRandomName } from "utils/dist/etc"
 import { getResponseContent } from "utils/dist/request"
+import { DataTable, DataTableProps } from "@/components/table"
 
 const DownloadReceipt = dynamic(
   () => import("components/dist/receipt/pdf").then(imp => imp.DownloadReceipt),
@@ -98,7 +89,8 @@ type Props = (
 
 const receiptAtom = atom<EmailProps | null>(null)
 
-export const makeColumns = (
+const columnHelper = createColumnHelper<Donation>()
+const makeColumns = (
   doneeInfo: Omit<DoneeInfo, "accountId" | "createdAt" | "id" | "updatedAt">,
   currency: SupportedCurrencies,
   donationDate: string,
@@ -106,9 +98,8 @@ export const makeColumns = (
 ) => {
   const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency })
   return [
-    {
-      accessorKey: "name",
-      header: ({ column }) => {
+    columnHelper.accessor("name", {
+      header({ column }) {
         return (
           <Button
             variant="ghost"
@@ -123,10 +114,9 @@ export const makeColumns = (
           </Button>
         )
       },
-    },
-    {
-      accessorKey: "email",
-      header: ({ column }) => {
+    }),
+    columnHelper.accessor("email", {
+      header({ column }) {
         return (
           <Button
             variant="ghost"
@@ -141,9 +131,8 @@ export const makeColumns = (
           </Button>
         )
       },
-    },
-    {
-      accessorKey: "total",
+    }),
+    columnHelper.accessor("total", {
       header: ({ column }) => {
         return (
           <Button
@@ -160,18 +149,18 @@ export const makeColumns = (
           </Button>
         )
       },
-      cell: ({ row }) => {
+      cell({ row }) {
         const amount = parseFloat(row.getValue("total"))
         const formatted = formatter.format(amount)
 
         return <div className="text-right font-medium">{formatted}</div>
       },
-    },
-    {
+    }),
+    columnHelper.display({
       id: "actions",
       header: "Actions",
       enableHiding: false,
-      cell: ({ row }) => {
+      cell({ row }) {
         const entry = row.original
         const fileName = `${entry.name}.pdf`
         const receiptProps: EmailProps = {
@@ -204,8 +193,8 @@ export const makeColumns = (
           </DropdownMenu>
         )
       },
-    },
-  ] as ColumnDef<Donation>[]
+    }),
+  ]
 }
 
 const ShowReceipt = ({ receiptProps }: { receiptProps: EmailProps }) => {
@@ -261,11 +250,13 @@ const blurredRows = new Array(10).fill(0).map((_, idx) => (
   </TableRow>
 ))
 
-type DataTableProps = {
-  columns: ColumnDef<Donation>[]
+function UnSubbedDataTable({
+  columns,
+  data,
+}: {
+  columns: ColumnDef<Donation, any>[]
   data: Donation[]
-}
-function UnSubbedDataTable({ columns, data }: DataTableProps) {
+}) {
   const table = useReactTable({
     data,
     columns,
@@ -311,95 +302,6 @@ function UnSubbedDataTable({ columns, data }: DataTableProps) {
           {blurredRows}
         </TableBody>
       </Table>
-    </div>
-  )
-}
-
-function DataTable({ columns, data }: DataTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      sorting,
-      columnFilters,
-    },
-  })
-
-  return (
-    <div>
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={event => table.getColumn("email")?.setFilterValue(event.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-      <div className="rounded-md">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
-      </div>
     </div>
   )
 }
@@ -470,7 +372,11 @@ function WithTable(props: {
       </Alert>
       <div className="w-full max-w-3xl overflow-x-auto overflow-y-hidden sm:rounded-lg">
         {subscribed ? (
-          <DataTable columns={columns} data={donations} />
+          <DataTable
+            columns={columns}
+            data={donations}
+            filters={[{ id: "email", placeholder: "Filter by email..." }]}
+          />
         ) : (
           <UnSubbedDataTable columns={columns} data={donations} />
         )}

@@ -1,5 +1,7 @@
+import { ColumnDef } from "@tanstack/react-table"
+import { useState } from "react"
+
 import {
-  ColumnDef,
   ColumnFiltersState,
   SortingState,
   flexRender,
@@ -19,14 +21,22 @@ import {
   TableHeader,
   TableRow,
 } from "components/dist/ui/table"
-import { useState } from "react"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
+type extract<T extends number[]> = T[number]
+
+export type FilterType<TColumns extends ColumnDef<any, any>[]> = {
+  id: TColumns[number]["id"] & string
+  placeholder: string
 }
-
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export type DataTableProps<TData, TColumns extends ColumnDef<TData, any>[]> = {
+  columns: TColumns
+  data: TData[]
+  filters?: FilterType<TColumns>[]
+}
+export function DataTable<
+  TData,
+  TColumns extends ColumnDef<TData, any>[] = ColumnDef<TData, any>[],
+>({ columns, data, filters }: DataTableProps<TData, TColumns>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
@@ -37,25 +47,37 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onColumnFiltersChange: setColumnFilters,
     state: {
       sorting,
       columnFilters,
     },
   })
-
+  console.log(table.getColumn("email")?.getFilterValue())
   return (
     <div>
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={event => table.getColumn("email")?.setFilterValue(event.target.value)}
-          className="max-w-sm"
-        />
+        {filters?.map(filter => {
+          if (!filter.id) return
+          return (
+            <Input
+              key={filter.id}
+              placeholder={filter.placeholder}
+              value={(table.getColumn(filter.id)?.getFilterValue() as string) ?? ""}
+              onChange={event => {
+                const column = table.getColumn(filter.id)
+                if (!column) return
+                const filterValue = column.getFilterValue()
+                if (filterValue === event.target.value) return
+                column.setFilterValue(event.target.value)
+              }}
+              className="max-w-sm"
+            />
+          )
+        })}
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (

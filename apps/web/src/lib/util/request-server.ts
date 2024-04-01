@@ -1,9 +1,9 @@
 import { captureException } from "@sentry/nextjs"
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next"
 import { Session, getServerSession } from "next-auth"
-import { ApiError } from "utils/dist/error"
 
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { ApiError } from "utils/dist/error"
 
 export type AuthorisedHandler<T = any> = (
   req: NextApiRequest,
@@ -37,8 +37,12 @@ export function createAuthorisedHandler<T>(
     } catch (error) {
       captureException(error)
       console.error(error)
-      if (!(error instanceof ApiError)) return res.status(404).send("unknown server error" as any)
-      res.status(error.statusCode).send(error.message as any)
+      if (!(error instanceof ApiError)) return res.status(500).send("unknown server error" as any)
+      const serialisedError: any = {}
+      if (error.message) serialisedError.message = error.message
+      if (error.stack) serialisedError.stack = error.stack
+      if (error.statusCode) serialisedError.statusCode = error.statusCode
+      res.status(error.statusCode).json(serialisedError)
     }
   }
 }

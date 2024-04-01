@@ -1,20 +1,21 @@
 import {
-  EnvelopeIcon,
   InformationCircleIcon as Info,
+  InformationCircleIcon,
   ChevronUpIcon as UpArrow,
 } from "@heroicons/react/24/solid"
+import { zodResolver } from "@hookform/resolvers/zod"
 import makeChecksum from "checksum"
-import { and, desc, eq, gt, inArray, isNotNull, lt } from "drizzle-orm"
-import { Alert, Button, Checkbox, Label, Modal, Toast } from "flowbite-react"
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
+import { and, desc, eq, gt, inArray, lt } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
 import { useRouter } from "next/router"
-import { Dispatch, SetStateAction, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
+import { useForm } from "react-hook-form"
+import z from "zod"
 
-import { Fieldset, TextArea, Toggle } from "@/components/form"
+import { EmailDataType } from "@/pages/api/email"
 import { LayoutProps } from "@/components/layout"
-import { EmailSentToast, LoadingButton, MissingData } from "@/components/ui"
+import { LoadingButton, MissingData } from "@/components/ui"
 import { dummyEmailProps } from "@/emails/props"
 import {
   AccountStatus as AuthAccountStatus,
@@ -28,9 +29,48 @@ import { getDonations } from "@/lib/qbo-api"
 import { isUserSubscribed } from "@/lib/stripe"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { SerialiseDates, deSerialiseDates, dynamic, serialiseDates } from "@/lib/util/nextjs-helper"
+import { regularCharacterRegex } from "@/lib/util/regex"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { EmailDataType } from "@/pages/api/email"
 import { EmailProps } from "components/dist/receipt/types"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "components/dist/ui/accordion"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "components/dist/ui/alert-dialog"
+import { Button } from "components/dist/ui/button"
+import { Dialog, DialogContent, DialogTrigger } from "components/dist/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "components/dist/ui/form"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "components/dist/ui/pagination"
+import { RadioGroup, RadioGroupItem } from "components/dist/ui/radio-group"
+import { Switch } from "components/dist/ui/switch"
+import { Textarea } from "components/dist/ui/textarea"
+import { useToast } from "components/dist/ui/use-toast"
 import {
   Campaign as DbCampaigns,
   Receipt as DbReceipts,
@@ -42,10 +82,12 @@ import {
   users,
 } from "db"
 import { storageBucket } from "db/dist/firebase"
-import { formatDateHtml } from "utils/dist/date"
+import { formatDate, formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
 import { ApiError } from "utils/dist/error"
 import { fetchJsonData } from "utils/dist/request"
+import { Alert, AlertDescription, AlertTitle } from "components/dist/ui/alert"
+import { ToastAction } from "components/dist/ui/toast"
 
 const WithBody = dynamic(() => import("components/dist/receipt/email").then(mod => mod.WithBody), {
   loading: () => null,
@@ -62,115 +104,53 @@ enum AccountStatus {
   IncompleteData,
   Complete,
 }
-const defaultCustomRecipientsState = false
 enum RecipientStatus {
   Valid = 0,
   NoEmail,
 }
-type Recipient = { name: string; donorId: string; status: RecipientStatus }
+type Recipient = { name: string; donorId: string } & (
+  | { status: RecipientStatus.NoEmail; email: null }
+  | { status: RecipientStatus.Valid; email: string }
+)
 
-// global state
-const atoms = {
-  emailBody: atom(defaultEmailBody),
-  showEmailPreview: atom(false),
-  showSendEmail: atom(false),
-  showEmailSentToast: atom(false),
-  showEmailFailureToast: atom(false),
-  emailFailureText: atom("error"),
-} as const
-
-function EmailInput() {
-  // TODO maybe save email to db with debounce?
-  const setEmailBody = useSetAtom(atoms.emailBody)
-  return (
-    <Fieldset>
-      <TextArea
-        id="email"
-        label="Your Email Template"
-        defaultValue={defaultEmailBody}
-        onChange={e => setEmailBody(e.currentTarget.value)}
-        rows={10}
-      />
-      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-        Use <code>{templateDonorName}</code> to reference your donor{"'"}s name
-      </div>
-    </Fieldset>
-  )
-}
-
-const EmailPreview = ({ donee }: { donee: DoneeInfo }) => {
-  const [showEmailPreview, setShowEmailPreview] = useAtom(atoms.showEmailPreview)
-  const emailBody = useAtomValue(atoms.emailBody)
-  return (
-    <Modal
-      dismissible
-      show={showEmailPreview}
-      onClose={() => setShowEmailPreview(false)}
-      className="bg-white"
-    >
-      <Modal.Body className="bg-white">
-        <div className="overflow-scroll">
-          <WithBody
-            {...dummyEmailProps}
-            donee={{ ...dummyEmailProps.donee, ...donee }}
-            body={formatEmailBody(emailBody, dummyEmailProps.donation.name)}
-          />
-        </div>
-      </Modal.Body>
-      <Modal.Footer className="bg-white">
-        <Button color="blue" onClick={() => setShowEmailPreview(false)}>
-          Close
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  )
-}
-
-const CampaignOverlap = ({ campaign }: { campaign: Campaign[] }) => (
-  <details className="group flex w-full items-center justify-between rounded-xl border border-gray-200 p-3 text-left font-medium   text-gray-500 open:bg-gray-100 open:p-5 hover:bg-gray-100 dark:border-gray-500 dark:text-gray-400 dark:open:bg-gray-800 dark:hover:bg-gray-800">
-    <summary className="mb-2 flex items-center justify-between gap-2">
-      <Info className="mr-2 h-8 w-8" />
-      Your selection of donees and date range overlaps with previous campaigns
-      <UpArrow className="h-5 w-5 shrink-0 group-open:rotate-180 group-open:text-gray-700 dark:group-open:text-gray-200" />
-    </summary>
-    <div className="font-light">
-      <div className="mb-2">
-        Please verify you are not receipting the same donations twice. The following campaigns have
-        overlap with the current:
-      </div>
-      <ul>
-        {campaign.map((entry, index) => (
-          <li
-            className="border-b border-gray-200 last:border-none hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 "
-            key={index}
-          >
-            <details
-              key={index}
-              className="group/item flex w-full items-center justify-between p-5 text-left font-medium text-gray-500"
-            >
-              <summary className="flex items-center justify-between gap-2">
-                {formatDateHtml(entry.createdAt)}
-                <UpArrow className="h-3 w-3 shrink-0 group-open/item:rotate-180" />
-              </summary>
-              <div className="mt-2 font-light">
-                <p className="mb-2">
-                  This campaign spanned donations from <i>{formatDateHtml(entry.startDate)}</i> to{" "}
-                  <i>{formatDateHtml(entry.endDate)}</i>
-                </p>
-                These donors will be sent receipts which overlap with the current campaign:
-                <br />
-                <ul className="mt-1 list-inside list-disc">
-                  {entry.receipts.map(receipt => (
-                    <li key={receipt.name}>{receipt.name}</li>
-                  ))}
-                </ul>
-              </div>
-            </details>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </details>
+const CampaignOverlap = ({ campaigns }: { campaigns: Campaign[] }) => (
+  <div>
+    <h3 className="mb-4 font-medium">Campaign Overlap</h3>
+    <Alert className="mb-4" variant="warning">
+      <InformationCircleIcon className="mr-2 mt-[0.35rem] inline-block h-4 w-4" />
+      <AlertTitle>Overlap Detected!</AlertTitle>
+      <AlertDescription>
+        Your selection of donees and date range overlaps with previous campaigns
+      </AlertDescription>
+    </Alert>
+    <p className="text-muted-foreground text-sm leading-relaxed">
+      Please verify you are not receipting the same donations twice. The following previous
+      campaigns have overlap with the current campaign:
+    </p>
+    <Accordion type="single" collapsible className="w-full">
+      {campaigns.map((entry, index) => {
+        const campaignDate = formatDateHtml(entry.createdAt)
+        return (
+          <AccordionItem key={index} value="item-1">
+            <AccordionTrigger>{campaignDate}</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground mb-2">
+              <p>
+                You sent a campaign on <i>{campaignDate}</i> which spanned donations from{" "}
+                <i>{formatDateHtml(entry.startDate)}</i> to <i>{formatDateHtml(entry.endDate)}</i>
+              </p>
+              These donors will be sent receipts which overlap with the current campaign:
+              <br />
+              <ul className="mt-1 list-inside list-disc">
+                {entry.receipts.map(receipt => (
+                  <li key={receipt.name}>{receipt.name}</li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        )
+      })}
+    </Accordion>
+  </div>
 )
 
 function getErrorText(error: ApiError) {
@@ -202,228 +182,383 @@ function getErrorText(error: ApiError) {
   }
 }
 
-function SendEmails({
-  recipients,
-  campaign,
-  checksum,
-}: {
-  recipients: Set<string>
-  campaign: Campaign[] | null
-  checksum: string
-}) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [showSendEmail, setShowSendEmail] = useAtom(atoms.showSendEmail)
-  const emailBody = useAtomValue(atoms.emailBody)
-  const setEmailFailureTest = useSetAtom(atoms.emailFailureText)
-  const setShowEmailFailureToast = useSetAtom(atoms.showEmailFailureToast)
+const schema = z.object({
+  emailBody: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex, {
+      message:
+        "This field can contain alphanumeric characters and the following special characters: -_,'&@#:()[]",
+    })
+    .min(1),
+  customRecipients: z.boolean(),
+  recipients: z.array(z.string()).min(1, { message: "Please select at least one recipient." }),
+})
+type Schema = z.infer<typeof schema>
+type FormType = ReturnType<typeof useForm<Schema>>
 
-  const handler = async () => {
-    setLoading(true)
-    const data: EmailDataType = {
-      emailBody: emailBody,
-      recipientIds: Array.from(recipients),
-      checksum,
+function subArrays<T>(arr: T[], size: number): T[][] {
+  return arr.reduce<T[][]>((acc, _, i) => (i % size ? acc : [...acc, arr.slice(i, i + size)]), [])
+}
+function SelectRecipients({ allRecipients, form }: { allRecipients: Recipient[]; form: FormType }) {
+  const itemsMap = (recipient: Recipient) => (
+    <FormField
+      key={recipient.donorId}
+      control={form.control}
+      name="recipients"
+      render={({ field }) => {
+        return (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <FormLabel
+                colorOnError={false}
+                className={recipient.status === RecipientStatus.NoEmail ? "text-muted" : ""}
+              >
+                {recipient.name}
+              </FormLabel>
+              <FormDescription
+                colorOnError={false}
+                className={recipient.status === RecipientStatus.NoEmail ? "text-muted" : ""}
+              >
+                {recipient.status === RecipientStatus.NoEmail ? "No email" : recipient.email}
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value?.includes(recipient.donorId)}
+                disabled={recipient.status === RecipientStatus.NoEmail}
+                onCheckedChange={checked => {
+                  return checked
+                    ? field.onChange([...field.value, recipient.donorId])
+                    : field.onChange(field.value?.filter(itemId => itemId !== recipient.donorId))
+                }}
+              />
+            </FormControl>
+          </FormItem>
+        )
+      }}
+    />
+  )
+
+  const customRecipients = form.watch("customRecipients")
+
+  const PaginatedRecipients = () => {
+    const [page, setPage] = useState(1)
+    const perPage = 12
+
+    const previousPage = () => {
+      if (page > 1) setPage(page => page - 1)
     }
-    try {
-      const res = await fetchJsonData("/api/email", {
-        method: "POST",
-        body: data,
-      })
-      if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
-      setLoading(false)
-      setShowSendEmail(false)
-    } catch (error) {
-      setLoading(false)
-      console.error(error)
-      if (!(error instanceof ApiError)) throw error
-      const errText = getErrorText(error)
-      setEmailFailureTest(errText)
-      setShowEmailFailureToast(true)
-      setShowSendEmail(false)
+    const nextPage = () => {
+      if (page < Math.ceil(allRecipients.length / perPage)) setPage(page => page + 1)
     }
+
+    return (
+      <div className="space-y-2">
+        <div>
+          {subArrays(allRecipients, perPage).map((recipients, index) => (
+            <div
+              key={index}
+              className={"grid-cols-2 gap-2 sm:grid " + (page === index + 1 ? "" : "!hidden")}
+            >
+              {recipients.map(recipient => itemsMap(recipient))}
+            </div>
+          ))}
+        </div>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                type="button"
+                disabled={customRecipients && page === 1}
+                as="button"
+                onClick={previousPage}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink type="button" as="button" isActive>
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+            {/* <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem> */}
+            <PaginationItem>
+              <PaginationNext
+                disabled={customRecipients && page === Math.ceil(allRecipients.length / perPage)}
+                type="button"
+                as="button"
+                onClick={nextPage}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    )
   }
 
+  const missingEmails = allRecipients.some(
+    recipient => recipient.status === RecipientStatus.NoEmail,
+  )
   return (
-    <Modal show={showSendEmail} size="lg" popup onClose={() => setShowSendEmail(false)}>
-      <Modal.Header />
-      <Modal.Body>
-        <div className="space-y-4 text-center">
-          {campaign && <CampaignOverlap campaign={campaign} />}
-          <p className="font-normal text-gray-500 dark:text-gray-400">
-            Please ensure that you confirm the accuracy of your receipts on the {'"'}Receipts{'"'}{" "}
-            page prior to sending. <br />
-            <br />
-            Are you certain you wish to email all of your donors?
-          </p>
-          <div className="flex justify-center gap-4">
-            <LoadingButton loading={loading} color="failure" onClick={handler}>
-              Yes, I{"'"}m sure
-            </LoadingButton>
-            <Button color="gray" onClick={() => setShowSendEmail(false)}>
-              No, cancel
-            </Button>
-          </div>
-        </div>
-      </Modal.Body>
-    </Modal>
-  )
-}
-
-const SelectRecipients = ({
-  possibleRecipients,
-  setSelectedRecipientIds,
-}: {
-  possibleRecipients: Recipient[]
-  setSelectedRecipientIds: Dispatch<SetStateAction<Set<string>>>
-}) => (
-  <div className="mt-4 sm:grid sm:grid-cols-2">
-    {possibleRecipients.map(({ donorId, name, status }) => (
-      <Toggle
-        key={donorId}
-        id={donorId}
-        label={name}
-        defaultChecked={status === RecipientStatus.Valid}
-        disabled={status === RecipientStatus.NoEmail}
-        onChange={e => {
-          const checked = e.currentTarget.checked
-          setSelectedRecipientIds(set => {
-            const newSet = new Set(set)
-            if (checked) newSet.add(donorId)
-            else newSet.delete(donorId)
-            return newSet
-          })
-        }}
-        size="sm"
-      />
-    ))}
-  </div>
-)
-
-const RecipientsMissingEmails = ({
-  selectedRecipientIds,
-  possibleRecipients,
-}: {
-  selectedRecipientIds: Set<string>
-  possibleRecipients: Recipient[]
-}) => (
-  <div className="flex flex-col justify-center gap-6">
-    <p className="text-gray-500 dark:text-gray-400">
-      {selectedRecipientIds.size > 0 ? "Some" : "All"} of your users are missing emails. Please add
-      emails to these users on QuickBooks if you wish to send receipts to all your donor.
-    </p>
-    <p className="text-gray-500 dark:text-gray-400">Users missing emails:</p>
-    <ul className="mx-4 max-w-md list-inside list-none space-y-1 text-left text-xs text-gray-500 sm:columns-2 dark:text-gray-400">
-      {possibleRecipients
-        .filter(recipient => recipient.status === RecipientStatus.NoEmail)
-        .map(recipient => (
-          <li className="truncate" key={recipient.donorId}>
-            {recipient.name}
-          </li>
-        ))}
-    </ul>
-  </div>
-)
-
-type CompleteAccountProps = {
-  accountStatus: AccountStatus.Complete
-  donee: DoneeInfo
-  possibleRecipients: Recipient[]
-  campaign: Campaign[] | null
-  checksum: string
-}
-
-function CompleteAccountEmail({
-  donee,
-  possibleRecipients,
-  campaign,
-  checksum,
-}: CompleteAccountProps) {
-  const defaultRecipientIds = useMemo(
-    () =>
-      possibleRecipients
-        .filter(recipient => recipient.status === RecipientStatus.Valid)
-        .map(({ donorId }) => donorId),
-    [possibleRecipients],
-  )
-  const [customRecipients, setCustomRecipients] = useState(defaultCustomRecipientsState)
-  const [selectedRecipientIds, setSelectedRecipientIds] = useState(
-    new Set<string>(defaultRecipientIds),
-  )
-  const setShowEmailPreview = useSetAtom(atoms.showEmailPreview)
-  const setShowSendEmail = useSetAtom(atoms.showSendEmail)
-  const [showEmailSentToast, setShowEmailSentToast] = useAtom(atoms.showEmailSentToast)
-  const [showEmailFailureToast, setShowEmailFailureToast] = useAtom(atoms.showEmailFailureToast)
-  const emailFailureText = useAtomValue(atoms.emailFailureText)
-
-  const trimmedHistory =
-    customRecipients && campaign ? trimHistoryById(selectedRecipientIds, campaign) : campaign
-
-  return (
-    <section className="flex h-full w-full max-w-2xl flex-col justify-center gap-4 p-8 align-middle">
-      <form className="space-y-4">
-        <EmailInput />
-        <Fieldset>
-          <div className="mt-2 inline-flex items-center gap-2">
-            <Checkbox
-              defaultChecked={defaultCustomRecipientsState}
-              id="customRecipients"
-              onChange={e => setCustomRecipients(e.currentTarget.checked)}
-            />
-            <Label htmlFor="customRecipients">Select recipients manually</Label>
-          </div>
-          <hr className="my-6 h-px border-0 bg-gray-200 dark:bg-gray-700" />
-          {customRecipients && (
-            <SelectRecipients
-              possibleRecipients={possibleRecipients}
-              setSelectedRecipientIds={setSelectedRecipientIds}
-            />
-          )}
-          {!customRecipients && defaultRecipientIds.length < possibleRecipients.length && (
-            <RecipientsMissingEmails
-              selectedRecipientIds={selectedRecipientIds}
-              possibleRecipients={possibleRecipients}
-            />
-          )}
-        </Fieldset>
-      </form>
-      <div className="mx-auto flex flex-col rounded-lg bg-white p-6 pt-5 text-center shadow sm:max-w-md dark:border dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex justify-center gap-4">
-          <Button color="blue" onClick={() => setShowEmailPreview(true)}>
-            Show Preview Email
-          </Button>
-          <Button
-            color="blue"
-            className={selectedRecipientIds.size > 0 ? undefined : "line-through"}
-            disabled={selectedRecipientIds.size === 0}
-            onClick={() => setShowSendEmail(true)}
-          >
-            Send Emails
-          </Button>
-        </div>
-        {selectedRecipientIds.size === 0 && (
-          <Alert color="warning" className="mb-4" icon={() => <Info className="mr-2 h-6 w-6" />}>
-            You have currently have no valid recipients
-          </Alert>
+    <div>
+      <h3 className="mb-2 font-medium">Recipients</h3>
+      {missingEmails && <RecipientsMissingEmails allRecipients={allRecipients} />}
+      <p className="text-muted-foreground mb-3 text-[0.8rem] transition-colors">
+        If you wish to select your recipients manually please select {'"'}Manually select recipients
+        {'"'}. Otherwise, all possible donors will be selected.
+      </p>
+      <FormField
+        control={form.control}
+        name="customRecipients"
+        render={({ field }) => (
+          <FormItem className="space-y-3">
+            <FormControl>
+              <RadioGroup
+                onValueChange={e => {
+                  const customRecipients = e === "select"
+                  if (!customRecipients) form.resetField("recipients")
+                  field.onChange(customRecipients)
+                }}
+                defaultValue={field.value ? "select" : "all"}
+                className="flex flex-col space-y-1"
+              >
+                <div className="flex items-center space-x-3 space-y-0">
+                  <RadioGroupItem value="all" id="all" />
+                  <FormLabel htmlFor="all" className="font-normal">
+                    All recipients
+                  </FormLabel>
+                </div>
+                <div className="flex items-center space-x-3 space-y-0">
+                  <RadioGroupItem value="select" id="select" />
+                  <FormLabel htmlFor="select" className="font-normal">
+                    Manually select recipients
+                  </FormLabel>
+                </div>
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
+      />
+      <FormField
+        control={form.control}
+        name="recipients"
+        render={() => (
+          <FormItem
+            className={"relative pt-4 transition-opacity " + (customRecipients ? "" : "opacity-30")}
+          >
+            {allRecipients.length <= 12 ? (
+              <div className="grid-cols-2 gap-2 sm:grid">{allRecipients.map(itemsMap)}</div>
+            ) : (
+              <PaginatedRecipients />
+            )}
+            <FormMessage />
+            {/* // TODO maybe implement?
+                <div className="flex flex-row gap-2 pb-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => field.onChange(items.map(item => item.id))}
+                  color="blue"
+                >
+                  Check All
+                </Button>
+                <Button type="button" variant="outline" onClick={() => field.onChange([])} color="blue">
+                  Uncheck All
+                </Button>
+              </div> */}
+            {!customRecipients && <div className="absolute inset-0 z-10"></div>}
+          </FormItem>
+        )}
+      />
+    </div>
+  )
+}
+
+const RecipientsMissingEmails = ({ allRecipients }: { allRecipients: Recipient[] }) => {
+  return (
+    <div className="mb-2 rounded-lg border p-4 pb-2">
+      <div className="mb-1 mt-1 flex items-center">
+        <InformationCircleIcon className="-mt-1 mb-1 mr-2 inline-block h-4 w-4" />
+        <h3 className="mb-2 text-sm font-medium leading-none tracking-tight">
+          Recipients missing emails
+        </h3>
       </div>
-      <EmailPreview donee={donee} />
-      <SendEmails recipients={selectedRecipientIds} campaign={trimmedHistory} checksum={checksum} />
-      {showEmailSentToast && <EmailSentToast onDismiss={() => setShowEmailSentToast(false)} />}
-      {showEmailFailureToast && (
-        <Toast className="fixed bottom-5 right-5">
-          <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500 dark:bg-red-800 dark:text-red-200">
-            <EnvelopeIcon className="h-5 w-5" />
-          </div>
-          <div className="ml-3 text-sm font-normal">{emailFailureText}</div>
-          <Toast.Toggle onDismiss={() => setShowEmailFailureToast(false)} />
-        </Toast>
-      )}
-    </section>
+      <p className="text-sm leading-relaxed">
+        Some of your clients who would be included in this campaign are missing emails. Please add
+        emails to these clients on QuickBooks if you wish to send receipts to all your clients.
+      </p>
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="item-1" className="border-b-0">
+          <AccordionTrigger>Users missing emails:</AccordionTrigger>
+          <AccordionContent>
+            <ul className="mx-4 max-w-md list-inside list-none space-y-1 text-left text-xs text-gray-500 sm:columns-2 dark:text-gray-400">
+              {allRecipients
+                .filter(recipient => recipient.status === RecipientStatus.NoEmail)
+                .map(recipient => (
+                  <li className="truncate" key={recipient.donorId}>
+                    {recipient.name}
+                  </li>
+                ))}
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
   )
 }
 
 // --- page --- //
+
+type CompleteAccountProps = {
+  accountStatus: AccountStatus.Complete
+  donee: DoneeInfo
+  allRecipients: Recipient[]
+  campaign: Campaign[] | null
+  checksum: string
+}
+
+function CompleteAccountEmail({ donee, allRecipients, campaign, checksum }: CompleteAccountProps) {
+  const recipientsWithEmails = useMemo(
+    () =>
+      allRecipients
+        .filter(recipient => recipient.status === RecipientStatus.Valid)
+        .map(({ donorId }) => donorId),
+    [allRecipients],
+  )
+  const [showDialog, setShowDialog] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const form = useForm<Schema>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      recipients: recipientsWithEmails,
+      customRecipients: false,
+      emailBody: defaultEmailBody,
+    },
+  })
+  const { watch } = form
+  const { toast } = useToast()
+  const router = useRouter()
+
+  const onSubmit = async (data: Schema) => {
+    console.log({ data })
+    setShowDialog(true)
+  }
+
+  const sendEmail = async () => {
+    console.log("send email")
+    const data = form.getValues()
+    setLoading(true)
+
+    const req: EmailDataType = {
+      emailBody: data.emailBody,
+      checksum,
+    }
+    if (data.customRecipients) {
+      req.recipientIds = data.recipients
+    }
+
+    try {
+      const res = await fetchJsonData("/api/email", {
+        method: "POST",
+        body: req,
+      })
+      if (res.campaignId) return router.push(`/campaign/${res.campaignId}`)
+      toast({ description: "Your message has been sent" })
+      setLoading(false)
+    } catch (error) {
+      setLoading(false)
+      console.error(error)
+      if (!(error instanceof ApiError)) throw error
+      if (error.message.startsWith("checksum"))
+        return toast({
+          variant: "destructive",
+          description:
+            "Your QuickBooks data has changed since you last loaded this page. Please reload the page and try again.",
+          action: <ToastAction onClick={() => router.replace(router.asPath)}>Reload</ToastAction>,
+        })
+      const errText = getErrorText(error)
+      toast({ variant: "destructive", description: errText })
+    }
+  }
+
+  const trimmedHistory = campaign
+    ? trimHistoryById(new Set(watch().recipients), campaign)
+    : campaign
+
+  return (
+    <section className="gap- 4flex-col flex w-full max-w-3xl justify-center p-8 pb-12 pt-4 align-middle sm:pt-12">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="emailBody"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="mb-2 inline-block text-base" htmlFor="body">
+                  Your email template
+                </FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-56" placeholder="Type your message here." {...field} />
+                </FormControl>
+                <FormDescription>
+                  Use <code>{templateDonorName}</code> to reference your donor{"'"}s name
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Dialog onOpenChange={state => setPreviewOpen(state)}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Show preview</Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[95vh] w-full max-w-5xl overflow-auto p-0 pt-12 text-gray-50">
+              <div className="h-full">
+                {previewOpen && (
+                  <WithBody
+                    {...dummyEmailProps}
+                    donee={{ ...dummyEmailProps.donee, ...donee }}
+                    body={formatEmailBody(watch().emailBody, dummyEmailProps.donation.name)}
+                  />
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          {<SelectRecipients allRecipients={allRecipients} form={form} />}
+          {trimmedHistory && <CampaignOverlap campaigns={trimmedHistory} />}
+          <Button type="submit" className="w-full">
+            Send receipts
+          </Button>
+          <AlertDialog open={showDialog}>
+            {/* <AlertDialogTrigger asChild></AlertDialogTrigger> */}
+            <AlertDialogContent className="max-w-xl space-y-4 text-center">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you{"'"}re ready to send?</AlertDialogTitle>
+                <AlertDialogDescription className="font-normal text-gray-500 dark:text-gray-400">
+                  Please ensure that you confirm the accuracy of your receipts on the {'"'}
+                  Receipts
+                  {'"'} page prior to sending. <br />
+                  <br />
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex justify-center gap-4">
+                <AlertDialogAction asChild>
+                  <LoadingButton loading={loading} variant="destructive" onClick={sendEmail}>
+                    Yes, I{"'"}m sure
+                  </LoadingButton>
+                </AlertDialogAction>
+                <AlertDialogCancel onClick={() => setShowDialog(false)}>
+                  No, cancel
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </form>
+      </Form>
+    </section>
+  )
+}
 
 type IncompleteAccountProps = {
   accountStatus: AccountStatus.IncompleteData
@@ -438,9 +573,6 @@ export default function Email(serialisedProps: SerialisedProps) {
     return (
       <section className="flex h-full flex-col justify-center gap-4 p-8 align-middle">
         <MissingData filledIn={props.filledIn} />
-        <form>
-          <EmailInput />
-        </form>
       </section>
     )
   else return <CompleteAccountEmail {...props} />
@@ -553,12 +685,13 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     { startDate: userData.startDate, endDate: userData.endDate },
     userData.items ? userData.items.split(",") : [],
   )
-  const possibleRecipients = donations.map(({ donorId, name, email }) => ({
+  const allRecipients = donations.map(({ donorId, name, email }) => ({
     donorId,
     name,
+    email,
     status: email ? RecipientStatus.Valid : RecipientStatus.NoEmail,
-  }))
-  const recipientIds = possibleRecipients.map(({ donorId }) => donorId)
+  })) as Recipient[]
+  const recipientIds = allRecipients.map(({ donorId }) => donorId)
 
   const dateOverlap = and(
     lt(campaigns.startDate, userData.endDate),
@@ -586,7 +719,7 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     props: serialiseDates({
       accountStatus: AccountStatus.Complete,
       donee: await downloadImagesForDonee(doneeInfo, storageBucket),
-      possibleRecipients,
+      allRecipients,
       checksum: makeChecksum(JSON.stringify(donations)),
       session,
       companies: accountList,

@@ -54,29 +54,30 @@ export function DataTable<
       columnFilters,
     },
   })
-  console.log(table.getColumn("email")?.getFilterValue())
   return (
     <div>
-      <div className="flex items-center py-4">
-        {filters?.map(filter => {
-          if (!filter.id) return
-          return (
-            <Input
-              key={filter.id}
-              placeholder={filter.placeholder}
-              value={(table.getColumn(filter.id)?.getFilterValue() as string) ?? ""}
-              onChange={event => {
-                const column = table.getColumn(filter.id)
-                if (!column) return
-                const filterValue = column.getFilterValue()
-                if (filterValue === event.target.value) return
-                column.setFilterValue(event.target.value)
-              }}
-              className="max-w-sm"
-            />
-          )
-        })}
-      </div>
+      {filters && (
+        <div className="flex items-center py-4">
+          {filters?.map(filter => {
+            if (!filter.id) return
+            return (
+              <Input
+                key={filter.id}
+                placeholder={filter.placeholder}
+                value={(table.getColumn(filter.id)?.getFilterValue() as string) ?? ""}
+                onChange={event => {
+                  const column = table.getColumn(filter.id)
+                  if (!column) return
+                  const filterValue = column.getFilterValue()
+                  if (filterValue === event.target.value) return
+                  column.setFilterValue(event.target.value)
+                }}
+                className="max-w-sm"
+              />
+            )
+          })}
+        </div>
+      )}
       <div className="rounded-md">
         <Table>
           <TableHeader>

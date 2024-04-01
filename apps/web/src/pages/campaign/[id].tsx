@@ -4,8 +4,27 @@ import { getServerSession } from "next-auth"
 import { ApiError } from "utils/dist/error"
 import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
+import { ChevronLeftIcon } from "@radix-ui/react-icons"
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "components/dist/ui/dropdown-menu"
 import { LayoutProps } from "@/components/layout"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "components/dist/ui/table"
 import {
   AccountStatus,
   disconnectedRedirect,
@@ -16,7 +35,14 @@ import {
 import { config } from "@/lib/env"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { ArrowsUpDownIcon, Bars3BottomLeftIcon } from "@heroicons/react/24/solid"
 import { EmailStatus, accounts, db, receipts, sessions } from "db"
+import Link from "next/link"
+import { createColumnHelper } from "@tanstack/react-table"
+import { Button } from "components/dist/ui/button"
+import { DotsHorizontalIcon } from "@radix-ui/react-icons"
+import { DataTable } from "@/components/table"
+import { cn } from "@/lib/utils"
 
 type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
 type Props = {
@@ -47,13 +73,63 @@ const getPillColor = (status: EmailStatus) => {
   }
 }
 
-const LiveUpdating = () => (
-  <div className="flex items-center justify-center rounded-lg">
-    <div className="animate-pulse rounded-full bg-blue-200 px-3 py-1 text-center text-xs font-medium leading-none text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-      updating...
-    </div>
-  </div>
-)
+const columnHelper = createColumnHelper<RecipientStatus>()
+const columns = [
+  columnHelper.accessor("email", {
+    header({ column }) {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Email
+          <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+  }),
+  columnHelper.accessor("emailStatus", {
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Email Status
+          <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+  }),
+  columnHelper.display({
+    id: "actions",
+    header: "Actions",
+    enableHiding: false,
+    cell({ row }) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <DotsHorizontalIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="p-0">
+              <Button asChild variant="ghost">
+                <a className="cursor-pointer" href={`mailto:${row.getValue("email")}`}>
+                  Email Donor
+                </a>
+              </Button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  }),
+]
 
 export default function DumbCampaign({
   liveUpdating,
@@ -63,35 +139,37 @@ export default function DumbCampaign({
   recipients: RecipientStatus[]
 }) {
   return (
-    <div className="flex flex-col items-center space-y-4 sm:py-8">
-      <div className="flex flex-row gap-4">{liveUpdating && <LiveUpdating />}</div>
-      <div className="auto w-full space-y-4 overflow-x-auto">
-        <Table>
-          <TableCaption>A list of your recent invoices.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Donor email</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recipients.map((recipient, i) => (
-              <TableRow key={i}>
-                <TableCell>{recipient.email}</TableCell>
-                <TableCell>{recipient.emailStatus}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="relative flex w-full flex-col items-center space-y-4 sm:py-8">
+      <div className="absolute left-0 top-0 p-4">
+        <Button asChild variant="ghost">
+          <Link href="/campaign">
+            <ChevronLeftIcon className="mr-2 h-4 w-4" />
+            Campaigns
+          </Link>
+        </Button>
       </div>
+      <div className="flex items-center justify-center rounded-lg">
+        <div
+          className={cn(
+            "rounded-full px-3 py-1 text-center text-xs font-medium leading-none",
+            liveUpdating
+              ? "animate-pulse bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              : "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200",
+          )}
+        >
+          {liveUpdating ? "updating..." : "complete"}
+        </div>
+      </div>
+      <DataTable columns={columns} data={recipients} />
     </div>
   )
 }
 
+// TODO make this the default export again
 function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
   const [recipients, setRecipients] = useState(initialRecipients)
   const [liveUpdating, setLiveUpdating] = useState(refresh)
-  const webhookRef = useRef<WebSocket>()
+  const websocketRed = useRef<WebSocket>()
 
   useEffect(() => {
     if (!refresh) return
@@ -114,13 +192,13 @@ function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props)
         return newRecipients
       })
     }
-    webhookRef.current = ws
+    websocketRed.current = ws
     return () => ws.close()
   }, [refresh, webhookUrl])
 
   // if all the emails have been resolved (either sent, bounced, etc. doesn't matter), close the websocket
   useEffect(() => {
-    if (!liveUpdating || !webhookRef.current) return
+    if (!liveUpdating || !websocketRed.current) return
     if (
       recipients.some(
         r =>
@@ -133,121 +211,95 @@ function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props)
 
     console.log("Closing webhook")
     setLiveUpdating(false)
-    webhookRef.current.close()
+    websocketRed.current.close()
   }, [recipients, liveUpdating])
 
   return <DumbCampaign liveUpdating={liveUpdating} recipients={recipients} />
 }
 
-// const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params }) => {
-//   if (!params) return { notFound: true }
-//   const id = params.id
-//   if (typeof id !== "string") return { notFound: true }
+const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params }) => {
+  if (!params) return { notFound: true }
+  const id = params.id
+  if (typeof id !== "string") return { notFound: true }
 
-//   const session = await getServerSession(req, res, authOptions)
-//   if (!session) return signInRedirect("items")
+  const session = await getServerSession(req, res, authOptions)
+  if (!session) return signInRedirect("items")
 
-//   const [account, recipients, [accountSwitched, accountList]] = await Promise.all([
-//     db.query.accounts.findFirst({
-//       // if the realmId is specified get that account otherwise just get the first account for the user
-//       where: and(
-//         eq(accounts.userId, session.user.id),
-//         session.accountId ? eq(accounts.id, session.accountId) : eq(accounts.scope, "accounting"),
-//       ),
-//       columns: {
-//         id: true,
-//         accessToken: true,
-//         scope: true,
-//         realmId: true,
-//         createdAt: true,
-//         expiresAt: true,
-//         refreshToken: true,
-//         refreshTokenExpiresAt: true,
-//       },
-//       orderBy: desc(accounts.updatedAt),
-//     }),
-//     db.query.receipts.findMany({
-//       where: eq(receipts.campaignId, id),
-//       columns: { email: true, emailStatus: true, donorId: true },
-//       orderBy: desc(receipts.email),
-//     }),
-//     getAccountList(session),
-//   ])
+  const [account, recipients, [accountSwitched, accountList]] = await Promise.all([
+    db.query.accounts.findFirst({
+      // if the realmId is specified get that account otherwise just get the first account for the user
+      where: and(
+        eq(accounts.userId, session.user.id),
+        session.accountId ? eq(accounts.id, session.accountId) : eq(accounts.scope, "accounting"),
+      ),
+      columns: {
+        id: true,
+        accessToken: true,
+        scope: true,
+        realmId: true,
+        createdAt: true,
+        expiresAt: true,
+        refreshToken: true,
+        refreshTokenExpiresAt: true,
+      },
+      orderBy: desc(accounts.updatedAt),
+    }),
+    db.query.receipts.findMany({
+      where: eq(receipts.campaignId, id),
+      columns: { email: true, emailStatus: true, donorId: true },
+      orderBy: desc(receipts.email),
+    }),
+    getAccountList(session),
+  ])
 
-//   // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
-//   if (accountSwitched) {
-//     return { redirect: { destination: `campaign/${id}`, permanent: false } }
-//   }
+  // this shouldn't really happen as the user should have been automatically signed into one of their connected accounts
+  if (accountSwitched) {
+    return { redirect: { destination: `campaign/${id}`, permanent: false } }
+  }
 
-//   if (session.accountId && !account)
-//     throw new ApiError(500, "account for given user and session not found in db")
+  if (session.accountId && !account)
+    throw new ApiError(500, "account for given user and session not found in db")
 
-//   // if the session does not specify an account but there is a connected account
-//   // then the session is connected to one of these accounts
-//   if (!session.accountId && account) {
-//     session.accountId = account.id
-//     await db
-//       .update(sessions)
-//       .set({ accountId: account.id })
-//       .where(eq(sessions.userId, session.user.id))
-//   }
+  // if the session does not specify an account but there is a connected account
+  // then the session is connected to one of these accounts
+  if (!session.accountId && account) {
+    session.accountId = account.id
+    await db
+      .update(sessions)
+      .set({ accountId: account.id })
+      .where(eq(sessions.userId, session.user.id))
+  }
 
-//   if (
-//     !account ||
-//     account.scope !== "accounting" ||
-//     !account.accessToken ||
-//     !account.realmId ||
-//     !session.accountId
-//   )
-//     return disconnectedRedirect(`campaign/${id}`)
+  if (
+    !account ||
+    account.scope !== "accounting" ||
+    !account.accessToken ||
+    !account.realmId ||
+    !session.accountId
+  )
+    return disconnectedRedirect(`campaign/${id}`)
 
-//   const { currentAccountStatus } = await refreshTokenIfNeeded(account)
-//   if (currentAccountStatus === AccountStatus.RefreshExpired) {
-//     return refreshTokenRedirect(`campaign/${id}`)
-//   }
-//   const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
+  const { currentAccountStatus } = await refreshTokenIfNeeded(account)
+  if (currentAccountStatus === AccountStatus.RefreshExpired) {
+    return refreshTokenRedirect(`campaign/${id}`)
+  }
+  const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${id}`
 
-//   return {
-//     props: {
-//       companies: accountList,
-//       session,
-//       selectedAccountId: session.accountId,
-//       recipients,
-//       refresh: recipients.some(
-//         r =>
-//           r.emailStatus === "delivery_delayed" ||
-//           r.emailStatus === "sent" ||
-//           r.emailStatus === "not_sent",
-//       ),
-//       webhookUrl,
-//     } satisfies Props,
-//   }
-// }
-
-// export const getServerSideProps = interceptGetServerSidePropsErrors(_getServerSideProps)
-
-export const getServerSideProps: GetServerSideProps = async ({ req, res, params }) => {
-  const webhookUrl = `${config.emailWebhookUrl}${config.emailWebhookUrl.at(-1) === "/" ? "" : "/"}${""}`
   return {
     props: {
-      recipients: [
-        {
-          email: "this_is_a_really_long_email@test.com",
-          donorId: "123",
-          emailStatus: "delivery_delayed" satisfies EmailStatus,
-        },
-        {
-          email: "this_is_a_really_long_email@test.com",
-          donorId: "123",
-          emailStatus: "delivery_delayed" satisfies EmailStatus,
-        },
-        {
-          email: "this_is_a_really_long_email@test.com",
-          donorId: "123",
-          emailStatus: "delivery_delayed" satisfies EmailStatus,
-        },
-      ],
-      liveUpdating: true,
-    },
+      companies: accountList,
+      session,
+      selectedAccountId: session.accountId,
+      recipients,
+      refresh: recipients.some(
+        r =>
+          r.emailStatus === "delivery_delayed" ||
+          r.emailStatus === "sent" ||
+          r.emailStatus === "not_sent",
+      ),
+      webhookUrl,
+    } satisfies Props,
   }
 }
+
+export const getServerSideProps = interceptGetServerSidePropsErrors(_getServerSideProps)

@@ -72,7 +72,7 @@ const Purposes = () => (
 )
 
 const PersonalData = () => (
-  <Accordion type="single" collapsible className="ml-4">
+  <Accordion type="multiple" className="ml-4">
     <AccordionItem value="types of data collected">
       <AccordionTrigger>Types of Data Collected</AccordionTrigger>
       <AccordionContent>
@@ -332,7 +332,7 @@ const Privacy = () => (
         TermsFeed Privacy Policy Generator.
       </a>
     </P>
-    <Accordion type="single" collapsible>
+    <Accordion type="multiple">
       {InterpretationDefinitions}
       <AccordionItem value="Collecting and Using Your Personal Data">
         <AccordionTrigger>Collecting and Using Your Personal Data</AccordionTrigger>

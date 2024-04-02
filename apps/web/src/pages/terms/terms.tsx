@@ -24,7 +24,7 @@ const Terms = () => (
       our Privacy Policy.
     </P>
     <P>The Site and appertaining products and services are provided by {companyName} Inc.</P>
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="multiple" className="w-full">
       {InterpretationDefinitions}
       <AccordionItem value="Acceptance">
         <AccordionTrigger>Acceptance</AccordionTrigger>

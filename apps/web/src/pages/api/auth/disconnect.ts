@@ -53,6 +53,7 @@ const handler: NextApiHandler = async (req, res) => {
   const session = await getServerSession(req, res, authOptions)
 
   const queryRealmId = req.query["realmId"]
+  // why?
   if (!session || typeof queryRealmId !== "string")
     return await serverSignIn("QBO-disconnected", req, res, true, "/auth/disconnected")
 

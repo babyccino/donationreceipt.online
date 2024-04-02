@@ -22,6 +22,7 @@ import Link from "next/link"
 import { NextRouter, useRouter } from "next/router"
 import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 
+import { DarkModeToggle } from "@/components/dark-mode-toggle"
 import { SupportedCountries, getCountryFlag, getCountryName, supportedCountries } from "@/lib/intl"
 import { subscribe } from "@/lib/util/request"
 import { DataType as SwitchCompanyDataType } from "@/pages/api/switch-company"
@@ -35,8 +36,6 @@ import {
   SelectValue,
 } from "components/dist/ui/select"
 import { fetchJsonData } from "utils/dist/request"
-import { getCurves } from "crypto"
-import { DarkModeToggle } from "./dark-mode-toggle"
 
 export type LayoutProps = {
   session: Session | null

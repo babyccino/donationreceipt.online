@@ -1,8 +1,4 @@
-import {
-  InformationCircleIcon as Info,
-  InformationCircleIcon,
-  ChevronUpIcon as UpArrow,
-} from "@heroicons/react/24/solid"
+import { InformationCircleIcon } from "@heroicons/react/24/solid"
 import { zodResolver } from "@hookform/resolvers/zod"
 import makeChecksum from "checksum"
 import { and, desc, eq, gt, inArray, lt } from "drizzle-orm"
@@ -13,7 +9,6 @@ import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import z from "zod"
 
-import { EmailDataType } from "@/pages/api/email"
 import { LayoutProps } from "@/components/layout"
 import { LoadingButton, MissingData } from "@/components/ui"
 import { dummyEmailProps } from "@/emails/props"
@@ -31,6 +26,7 @@ import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/ge
 import { SerialiseDates, deSerialiseDates, dynamic, serialiseDates } from "@/lib/util/nextjs-helper"
 import { regularCharacterRegex } from "@/lib/util/regex"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
+import { EmailDataType } from "@/pages/api/email"
 import { EmailProps } from "components/dist/receipt/types"
 import {
   Accordion,
@@ -38,6 +34,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "components/dist/ui/accordion"
+import { Alert, AlertDescription, AlertTitle } from "components/dist/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +67,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "components/dist/ui/radio-group"
 import { Switch } from "components/dist/ui/switch"
 import { Textarea } from "components/dist/ui/textarea"
+import { ToastAction } from "components/dist/ui/toast"
 import { useToast } from "components/dist/ui/use-toast"
 import {
   Campaign as DbCampaigns,
@@ -82,12 +80,10 @@ import {
   users,
 } from "db"
 import { storageBucket } from "db/dist/firebase"
-import { formatDate, formatDateHtml } from "utils/dist/date"
+import { formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
 import { ApiError } from "utils/dist/error"
 import { fetchJsonData } from "utils/dist/request"
-import { Alert, AlertDescription, AlertTitle } from "components/dist/ui/alert"
-import { ToastAction } from "components/dist/ui/toast"
 
 const WithBody = dynamic(() => import("components/dist/receipt/email").then(mod => mod.WithBody), {
   loading: () => null,
@@ -127,11 +123,11 @@ const CampaignOverlap = ({ campaigns }: { campaigns: Campaign[] }) => (
       Please verify you are not receipting the same donations twice. The following previous
       campaigns have overlap with the current campaign:
     </p>
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="multiple" className="w-full">
       {campaigns.map((entry, index) => {
         const campaignDate = formatDateHtml(entry.createdAt)
         return (
-          <AccordionItem key={index} value="item-1">
+          <AccordionItem key={index} value={index.toString()}>
             <AccordionTrigger>{campaignDate}</AccordionTrigger>
             <AccordionContent className="text-muted-foreground mb-2">
               <p>
@@ -476,7 +472,11 @@ function CompleteAccountEmail({ donee, allRecipients, campaign, checksum }: Comp
           variant: "destructive",
           description:
             "Your QuickBooks data has changed since you last loaded this page. Please reload the page and try again.",
-          action: <ToastAction onClick={() => router.replace(router.asPath)}>Reload</ToastAction>,
+          action: (
+            <ToastAction altText="Reload page" onClick={() => router.replace(router.asPath)}>
+              Reload
+            </ToastAction>
+          ),
         })
       const errText = getErrorText(error)
       toast({ variant: "destructive", description: errText })

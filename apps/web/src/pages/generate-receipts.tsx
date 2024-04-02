@@ -1,5 +1,12 @@
 import { ArrowRightIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid"
-import { ColumnDef, createColumnHelper } from "@tanstack/react-table"
+import { DotsHorizontalIcon } from "@radix-ui/react-icons"
+import {
+  ColumnDef,
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
 import download from "downloadjs"
 import { and, eq, sql } from "drizzle-orm"
 import { atom, useAtom, useSetAtom } from "jotai"
@@ -8,8 +15,10 @@ import { Session, getServerSession } from "next-auth"
 import dynamic from "next/dynamic"
 import { useState } from "react"
 import { twMerge } from "tailwind-merge"
+import Link from "next/link"
 
 import { LayoutProps } from "@/components/layout"
+import { DataTable } from "@/components/table"
 import { LoadingButton, MissingData } from "@/components/ui"
 import {
   AccountStatus,
@@ -24,9 +33,6 @@ import { isUserSubscribed } from "@/lib/stripe"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { subscribe } from "@/lib/util/request"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { DotsHorizontalIcon } from "@radix-ui/react-icons"
-import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
-import { Link } from "components/dist/link"
 import { EmailProps } from "components/dist/receipt/types"
 import { Alert, AlertDescription } from "components/dist/ui/alert"
 import { Button } from "components/dist/ui/button"
@@ -56,7 +62,6 @@ import { downloadImageAndConvertToPng } from "utils/dist/db-helper"
 import { ApiError } from "utils/dist/error"
 import { getRandomBalance, getRandomName } from "utils/dist/etc"
 import { getResponseContent } from "utils/dist/request"
-import { DataTable, DataTableProps } from "@/components/table"
 
 const DownloadReceipt = dynamic(
   () => import("components/dist/receipt/pdf").then(imp => imp.DownloadReceipt),
@@ -89,7 +94,7 @@ type Props = (
 
 const receiptAtom = atom<EmailProps | null>(null)
 
-const columnHelper = createColumnHelper<Donation>()
+const columnHelper = createColumnHelper<Donation & { email: string }>()
 const makeColumns = (
   doneeInfo: Omit<DoneeInfo, "accountId" | "createdAt" | "id" | "updatedAt">,
   currency: SupportedCurrencies,
@@ -254,8 +259,8 @@ function UnSubbedDataTable({
   columns,
   data,
 }: {
-  columns: ColumnDef<Donation, any>[]
-  data: Donation[]
+  columns: ColumnDef<Donation & { email: string }, any>[]
+  data: (Donation & { email: string })[]
 }) {
   const table = useReactTable({
     data,
@@ -324,9 +329,12 @@ function DownloadAllFiles() {
   }
 
   return (
-    <div className="mb-4 flex flex-row items-baseline gap-6 rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
-      <p className="inline font-normal text-gray-700 dark:text-gray-400">Download all receipts</p>
-      <LoadingButton loading={loading} onClick={onClick} disabled={loading} color="blue">
+    <div className="mb-4">
+      <h3 className="font-normal">Download all receipts</h3>
+      <p className="text-muted-foreground mb-2 text-sm">
+        Download all receipts for this month in a single zip file
+      </p>
+      <LoadingButton loading={loading} onClick={onClick} disabled={loading}>
         Download
       </LoadingButton>
     </div>
@@ -340,6 +348,13 @@ export default function IndexPage(props: Props) {
   return <WithTable {...props} />
 }
 
+function ReceiptDialog() {
+  const [receipt, setReceipt] = useAtom(receiptAtom)
+
+  if (!receipt) return null
+  return <ReceiptDisplay receiptProps={receipt} close={() => setReceipt(null)} />
+}
+
 function WithTable(props: {
   receiptsReady: true
   session: Session
@@ -349,23 +364,14 @@ function WithTable(props: {
   counterStart: number
   donationRange: string
 }) {
-  const { doneeInfo, subscribed, counterStart, donations } = props
-  const [receipt, setReceipt] = useAtom(receiptAtom)
+  const { doneeInfo, subscribed, counterStart } = props
+  const donations = props.donations.map(donation => ({ ...donation, email: donation.email ?? "" }))
   const currentYear = getThisYear()
   const columns = makeColumns(doneeInfo, "cad", new Date().toISOString(), subscribed)
+
   return (
-    <section className="flex h-full w-full flex-col items-center p-8">
-      {receipt && <ReceiptDisplay receiptProps={receipt} close={() => setReceipt(null)} />}
-      {/* TODO this thing is also ugly  */}
-      {subscribed && (
-        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <DownloadAllFiles />
-          <div className="mb-4 flex flex-row items-baseline gap-6 rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
-            <p className="inline font-normal text-gray-700 dark:text-gray-400">Email your donors</p>
-            <Link href="/email">Email</Link>
-          </div>
-        </div>
-      )}
+    <section className="flex h-full w-full max-w-2xl flex-col items-center p-8">
+      <ReceiptDialog />
       <Alert className="mb-4 sm:hidden">
         <ArrowRightIcon className="mr-2 h-4 w-4" />
         <AlertDescription>Scroll right to view/download individual receipts</AlertDescription>
@@ -381,6 +387,20 @@ function WithTable(props: {
           <UnSubbedDataTable columns={columns} data={donations} />
         )}
       </div>
+      {subscribed && (
+        <div className="flex w-full flex-col items-start justify-center gap-4">
+          <DownloadAllFiles />
+          <div className="mb-4">
+            <h3 className="font-normal">Email your donors</h3>
+            <p className="text-muted-foreground mb-2 text-sm">
+              You{"'"}re all set! You can email your receipts out to your donors.
+            </p>
+            <Button asChild variant="secondary">
+              <Link href="/email">Email</Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

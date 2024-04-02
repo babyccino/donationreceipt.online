@@ -1,30 +1,14 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { ArrowsUpDownIcon } from "@heroicons/react/24/solid"
+import { ChevronLeftIcon, DotsHorizontalIcon } from "@radix-ui/react-icons"
+import { and, desc, eq } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "utils/dist/error"
-import { useRouter } from "next/router"
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { ChevronLeftIcon } from "@radix-ui/react-icons"
+import { ApiError } from "utils/dist/error"
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "components/dist/ui/dropdown-menu"
 import { LayoutProps } from "@/components/layout"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "components/dist/ui/table"
+import { DataTable } from "@/components/table"
 import {
   AccountStatus,
   disconnectedRedirect,
@@ -34,15 +18,19 @@ import {
 } from "@/lib/auth/next-auth-helper-server"
 import { config } from "@/lib/env"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { cn } from "@/lib/utils"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { ArrowsUpDownIcon, Bars3BottomLeftIcon } from "@heroicons/react/24/solid"
-import { EmailStatus, accounts, db, receipts, sessions } from "db"
-import Link from "next/link"
 import { createColumnHelper } from "@tanstack/react-table"
 import { Button } from "components/dist/ui/button"
-import { DotsHorizontalIcon } from "@radix-ui/react-icons"
-import { DataTable } from "@/components/table"
-import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "components/dist/ui/dropdown-menu"
+import { EmailStatus, accounts, db, receipts, sessions } from "db"
 
 type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
 type Props = {

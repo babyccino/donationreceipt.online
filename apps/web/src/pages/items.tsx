@@ -61,7 +61,7 @@ import { fetchJsonData } from "utils/dist/request"
 
 const schema = z.object({
   dateRangeType: z.enum(dateRangeTypeList, { required_error: "Please select a date range type" }),
-  customDateRange: z.object({ startDate: z.date(), endDate: z.date() }).required().optional(),
+  customDateRange: z.object({ startDate: z.date(), endDate: z.date() }).optional(),
   items: z.array(z.string()).min(1, { message: "Please select at least one item" }),
 })
 type Schema = z.infer<typeof schema>
@@ -171,7 +171,7 @@ export default function Items(serialisedProps: SerialisedProps) {
           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
             <div className="space-y-0.5">
               <FormLabel colorOnError={false}>{item.name}</FormLabel>
-              <FormDescription>TODO add descriptions.</FormDescription>
+              {item.description && <FormDescription>{item.description}</FormDescription>}
             </div>
             <FormControl>
               <Switch

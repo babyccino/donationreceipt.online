@@ -218,7 +218,7 @@ export type SalesTotalsRow = {
   group: "GrandTotal"
 }
 
-export type Item = { name: string; id: string }
+export type Item = { name: string; id: string; description?: string }
 
 export type RowData = {
   data: number[]

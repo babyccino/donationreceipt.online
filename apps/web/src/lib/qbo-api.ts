@@ -1,10 +1,4 @@
-import { ApiError } from "utils/dist/error"
-
 import { config } from "@/lib/env"
-import { formatDateHtmlReverse } from "utils/dist/date"
-import { base64EncodeString } from "utils/dist/image-helper"
-import { fetchJsonData } from "utils/dist/request"
-import { Donation, DonationWithoutAddress } from "types"
 import {
   Address,
   ColData,
@@ -21,6 +15,11 @@ import {
   SalesRow,
   SalesSectionRow,
 } from "@/types/qbo-api"
+import { Donation, DonationWithoutAddress } from "types"
+import { formatDateHtmlReverse } from "utils/dist/date"
+import { ApiError } from "utils/dist/error"
+import { base64EncodeString } from "utils/dist/image-helper"
+import { fetchJsonData } from "utils/dist/request"
 
 const padIfExists = (str: string | null | undefined) => (str ? ` ${str}` : "")
 export const getAddressString = (address: Address): string =>
@@ -226,13 +225,18 @@ export async function getCustomerData(
 export async function getItems(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId.toString(), "select * from Item")
   const itemQuery = await fetchJsonData<ItemQueryResponse>(url, { bearer: accessToken })
+  console.log("itemQuery", itemQuery.QueryResponse.Item)
   return formatItemQuery(itemQuery)
 }
 
 export function formatItemQuery(itemQuery: ItemQueryResponse) {
   const items = itemQuery.QueryResponse.Item
   // TODO handle subitems
-  return items.filter(item => !item.SubItem).map<Item>(({ Id, Name }) => ({ id: Id, name: Name }))
+  return items
+    .filter(item => !item.SubItem)
+    .map<Item>(({ Id, Name, Description }) =>
+      Description ? { id: Id, name: Name, description: Description } : { id: Id, name: Name },
+    )
 }
 
 export async function getCompanyInfo(accessToken: string, realmId: string) {

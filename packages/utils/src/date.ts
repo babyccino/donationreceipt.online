@@ -48,6 +48,13 @@ export enum DateRangeType {
   AllTime = "AllTime",
   Custom = "Custom",
 }
+export const dateRangeTypeList = [
+  DateRangeType.LastYear,
+  DateRangeType.ThisYear,
+  DateRangeType.Ytd,
+  DateRangeType.AllTime,
+  DateRangeType.Custom,
+] as const
 
 const MS_IN_DAY = 1000 * 60 * 60 * 24
 export function getDaysBetweenDates(date1: Date, date2: Date) {

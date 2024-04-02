@@ -119,7 +119,7 @@ const columns = [
   }),
 ]
 
-export default function DumbCampaign({
+function DumbCampaign({
   liveUpdating,
   recipients,
 }: {
@@ -153,8 +153,7 @@ export default function DumbCampaign({
   )
 }
 
-// TODO make this the default export again
-function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
+export default function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
   const [recipients, setRecipients] = useState(initialRecipients)
   const [liveUpdating, setLiveUpdating] = useState(refresh)
   const websocketRed = useRef<WebSocket>()

@@ -67,7 +67,10 @@ const fileRequiredSchema = z
   .refine(fileSizeRefiner, { message: "File must be less than 100kb" })
 const zodRegularString = z
   .string({ required_error: "This field is required." })
-  .regex(regularCharacterRegex)
+  .regex(regularCharacterRegex, {
+    message:
+      "This field can contain alphanumeric characters and the following special characters: -_,'&@#:()[]",
+  })
 
 function assertFile(file: any): asserts file is File | undefined {
   if (file && !(file instanceof File)) throw new Error("File must be a file class instance")

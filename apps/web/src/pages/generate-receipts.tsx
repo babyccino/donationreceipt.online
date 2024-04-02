@@ -311,7 +311,6 @@ function UnSubbedDataTable({
   )
 }
 
-// TODO this thing is ugly
 function DownloadAllFiles() {
   const [loading, setLoading] = useState(false)
 

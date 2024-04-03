@@ -82,9 +82,8 @@ FormItem.displayName = "FormItem"
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & { colorOnError?: boolean }
->(({ className, ...props }, ref) => {
+>(({ className, colorOnError = true, ...props }, ref) => {
   const { error, formItemId } = useFormField()
-  const colorOnError = props.colorOnError ?? true
   return (
     <Label
       ref={ref}

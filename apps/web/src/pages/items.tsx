@@ -1,4 +1,4 @@
-import { InformationCircleIcon } from "@heroicons/react/24/solid"
+import { InfoCircledIcon } from "@radix-ui/react-icons"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { and, desc, eq } from "drizzle-orm"
 import { GetServerSideProps } from "next"
@@ -257,7 +257,7 @@ export default function Items(serialisedProps: SerialisedProps) {
         className="m-auto my-4 flex w-full max-w-lg flex-col items-stretch justify-center p-4"
       >
         <Alert className="mb-4">
-          <InformationCircleIcon className="mb-[-0.15rem] mr-2 inline-block h-4 w-4" />
+          <InfoCircledIcon className="mb-[-0.15rem] mr-2 inline-block h-4 w-4" />
           <AlertDescription>
             Make sure to only choose your QuickBooks sales items which qualify as donations
           </AlertDescription>

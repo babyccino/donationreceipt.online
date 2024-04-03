@@ -1,4 +1,4 @@
-import { InformationCircleIcon } from "@heroicons/react/24/solid"
+import { InfoCircledIcon } from "@radix-ui/react-icons"
 import { zodResolver } from "@hookform/resolvers/zod"
 import makeChecksum from "checksum"
 import { and, desc, eq, gt, inArray, lt } from "drizzle-orm"
@@ -113,7 +113,7 @@ const CampaignOverlap = ({ campaigns }: { campaigns: Campaign[] }) => (
   <div>
     <h3 className="mb-4 font-medium">Campaign Overlap</h3>
     <Alert className="mb-4" variant="warning">
-      <InformationCircleIcon className="mr-2 mt-[0.35rem] inline-block h-4 w-4" />
+      <InfoCircledIcon className="mr-2 mt-[0.35rem] inline-block h-4 w-4" />
       <AlertTitle>Overlap Detected!</AlertTitle>
       <AlertDescription>
         Your selection of donees and date range overlaps with previous campaigns
@@ -375,7 +375,7 @@ const RecipientsMissingEmails = ({ allRecipients }: { allRecipients: Recipient[]
   return (
     <div className="mb-2 rounded-lg border p-4 pb-2">
       <div className="mb-1 mt-1 flex items-center">
-        <InformationCircleIcon className="-mt-1 mb-1 mr-2 inline-block h-4 w-4" />
+        <InfoCircledIcon className="-mt-1 mb-1 mr-2 inline-block h-4 w-4" />
         <h3 className="mb-2 text-sm font-medium leading-none tracking-tight">
           Recipients missing emails
         </h3>

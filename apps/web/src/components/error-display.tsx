@@ -1,4 +1,6 @@
-import { DumbLink } from "components/dist/dumb-link"
+import Link from "next/link"
+
+import { Button } from "components/dist/ui/button"
 
 export const ErrorDisplay = ({ error }: { error: Error }) => {
   return (
@@ -15,7 +17,9 @@ export const ErrorDisplay = ({ error }: { error: Error }) => {
             Error {(error as any).statusCode ?? ""}: {error.message}
           </p>
         )}
-        <DumbLink href="/support">Contact support</DumbLink>
+        <Button asChild variant="outline">
+          <Link href="/support">Contact support</Link>
+        </Button>
         {error.stack && (
           <pre className="mt-4 overflow-x-scroll rounded-md border-4 border-zinc-600 bg-zinc-900 p-2 text-left font-mono text-sm text-green-400">
             {error.stack}

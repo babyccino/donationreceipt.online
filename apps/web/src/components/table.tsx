@@ -22,8 +22,6 @@ import {
   TableRow,
 } from "components/dist/ui/table"
 
-type extract<T extends number[]> = T[number]
-
 export type FilterType<TColumns extends ColumnDef<any, any>[]> = {
   id: TColumns[number]["id"] & string
   placeholder: string
@@ -32,11 +30,12 @@ export type DataTableProps<TData, TColumns extends ColumnDef<TData, any>[]> = {
   columns: TColumns
   data: TData[]
   filters?: FilterType<TColumns>[]
+  fillRows?: boolean
 }
 export function DataTable<
   TData,
   TColumns extends ColumnDef<TData, any>[] = ColumnDef<TData, any>[],
->({ columns, data, filters }: DataTableProps<TData, TColumns>) {
+>({ columns, data, filters, fillRows = false }: DataTableProps<TData, TColumns>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
@@ -54,6 +53,7 @@ export function DataTable<
       columnFilters,
     },
   })
+
   return (
     <div>
       {filters && (
@@ -95,25 +95,7 @@ export function DataTable<
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+          <TableBody>{tableRows(table, columns)}</TableBody>
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
@@ -136,4 +118,44 @@ export function DataTable<
       </div>
     </div>
   )
+}
+
+function tableRows(
+  table: ReturnType<typeof useReactTable<any>>,
+  columns: ColumnDef<any, any>[],
+  fillRows: boolean = false,
+) {
+  const rowModel = table.getRowModel().rows
+  const len = rowModel?.length
+  if (!len) {
+    return (
+      <TableRow>
+        <TableCell colSpan={columns.length} className="h-24 text-center">
+          No results.
+        </TableCell>
+      </TableRow>
+    )
+  }
+  const rows = rowModel.map(row => (
+    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+      {row.getVisibleCells().map(cell => (
+        <TableCell key={cell.id}>
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </TableCell>
+      ))}
+    </TableRow>
+  ))
+  const rowCount = table.getRowCount()
+  if (fillRows && len < rowCount - 1) {
+    for (let i = len; i < rowCount; i++) {
+      rows.push(
+        <TableRow key={"fake" + i}>
+          {rowModel[0].getVisibleCells().map(cell => (
+            <TableCell key={cell.id}>---</TableCell>
+          ))}
+        </TableRow>,
+      )
+    }
+  }
+  return rows
 }

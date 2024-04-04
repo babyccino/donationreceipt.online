@@ -42,22 +42,22 @@ type Props = {
 const getPillColor = (status: EmailStatus) => {
   switch (status) {
     case "sent":
-      return "bg-gray-300 text-gray-900 dark:text-gray-200 dark:bg-zinc-800"
+      return "bg-gray-200 text-gray-800 dark:text-gray-200 dark:bg-zinc-800"
     case "not_sent":
-      return "bg-red-300 text-gray-900 dark:text-gray-200 dark:bg-red-900"
+      return "bg-red-200 text-red-800 dark:text-red-200 dark:bg-red-900"
     case "delivery_delayed":
-      return "bg-stone-300 text-gray-900 dark:text-gray-200 dark:bg-stone-700"
+      return "bg-stone-200 text-stone-800 dark:text-stone-200 dark:bg-stone-700"
     case "delivered":
-      return "bg-green-300 text-gray-900 dark:text-gray-200 dark:bg-green-900"
+      return "bg-green-200 text-green-800 dark:text-green-200 dark:bg-green-900"
     case "opened":
-      return "bg-cyan-300 text-gray-900 dark:text-gray-200 dark:bg-cyan-900"
+      return "bg-cyan-200 text-cyan-800 dark:text-cyan-200 dark:bg-cyan-900"
     case "clicked":
-      return "bg-blue-300 text-gray-900 dark:text-gray-200 dark:bg-blue-900"
+      return "bg-blue-200 text-blue-800 dark:text-blue-200 dark:bg-blue-900"
     case "bounced":
-      return "bg-red-300 text-gray-900 dark:text-gray-200 dark:bg-red-900"
+      return "bg-red-200 text-red-800 dark:text-red-200 dark:bg-red-900"
     case "complained":
     default:
-      return "bg-orange-300 text-gray-900 dark:text-gray-200 dark:bg-orange-800"
+      return "bg-orange-200 text-orange-800 dark:text-orange-200 dark:bg-orange-800"
   }
 }
 
@@ -94,7 +94,7 @@ const columns = [
         <div className="w-full text-center">
           <span
             className={cn(
-              "inline-block rounded-full px-3 py-1 text-center text-sm font-medium leading-none",
+              "inline-block rounded-full px-3 py-1 text-center text-sm leading-none",
               getPillColor(val),
             )}
           >

@@ -1,14 +1,9 @@
 import {
-  ArrowLeftOnRectangleIcon,
-  ArrowRightOnRectangleIcon,
   Bars3BottomLeftIcon,
-  BuildingOfficeIcon,
   ChatBubbleLeftEllipsisIcon,
   DocumentTextIcon,
-  EnvelopeIcon,
   GlobeAltIcon,
-  InformationCircleIcon,
-  PlusSmallIcon,
+  PlusCircleIcon,
   RectangleGroupIcon,
   RectangleStackIcon,
   ShoppingBagIcon,
@@ -16,6 +11,13 @@ import {
   UserCircleIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/solid"
+import {
+  EnterIcon,
+  ExitIcon,
+  EnvelopeClosedIcon,
+  EnvelopeOpenIcon,
+  InfoCircledIcon,
+} from "@radix-ui/react-icons"
 import { Session } from "next-auth"
 import { signIn, signOut } from "next-auth/react"
 import Link from "next/link"
@@ -127,8 +129,12 @@ export default function Layout(
                   Receipts
                 </NavItem>
                 <NavItem href="/email" highlight={router.asPath === "/email"}>
-                  <EnvelopeIcon className="h-4 w-4" />
+                  <EnvelopeClosedIcon className="h-4 w-4" />
                   Email
+                </NavItem>
+                <NavItem href="/campaign" highlight={router.asPath === "/campaign"}>
+                  <EnvelopeOpenIcon className="h-4 w-4" />
+                  Campaigns
                 </NavItem>
                 <NavItem href="/account" highlight={router.asPath === "/account"}>
                   <UserCircleIcon className="h-4 w-4" />
@@ -146,7 +152,7 @@ export default function Layout(
                   signOut()
                 }}
               >
-                <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                <ExitIcon className="h-4 w-4" />
                 Sign Out
               </NavItem>
             ) : (
@@ -154,7 +160,7 @@ export default function Layout(
                 href={`/auth/signin?callback=${router.asPath}`}
                 highlight={router.asPath === "/auth/signin"}
               >
-                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                <EnterIcon className="h-4 w-4" />
                 Sign In
               </NavItem>
             )}
@@ -174,7 +180,7 @@ export default function Layout(
             <hr className="mt-5 border-none" />
             <h4 className="text-muted-foreground mb-1 ml-3 text-xs font-light">Legal</h4>
             <NavItem href="/info" highlight={router.asPath === "/info"}>
-              <InformationCircleIcon className="h-4 w-4" />
+              <InfoCircledIcon className="h-4 w-4" />
               Info
             </NavItem>
             <NavItem href="/terms/terms" highlight={router.asPath === "/terms/terms"}>
@@ -305,7 +311,7 @@ const Companies = ({
         </SelectItem>
       ))}
       <SelectItem value="add-account" onClick={() => signIn("QBO")}>
-        <PlusSmallIcon className="-mt-1 mr-2 inline-block h-4 w-4" />
+        <PlusCircleIcon className="-mt-1 mr-2 inline-block h-4 w-4" />
         Add Account
       </SelectItem>
     </SelectContent>

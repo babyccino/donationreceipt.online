@@ -36,6 +36,7 @@ type Campaign = {
   name: string
   createdAt: Date
   receiptCount: number
+  inCompleteReceiptCount: number
 }
 type Props = {
   campaigns: Campaign[]
@@ -101,6 +102,34 @@ const columns = [
     cell({ cell }) {
       const count = cell.getValue()
       return <div className="w-full pr-4 text-right">{count.toString()}</div>
+    },
+  }),
+  columnHelper.accessor("inCompleteReceiptCount", {
+    header: ({ column }) => {
+      return (
+        <Button
+          className="flex w-full pb-2 text-center"
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell({ cell }) {
+      const count = cell.getValue()
+      const inProgress =
+        "bg-blue-200 text-blue-800 dark:text-blue-200 animate-pulse dark:bg-blue-900"
+      const complete = "bg-green-200 text-green-800 dark:text-green-200 dark:bg-green-900"
+      const className =
+        "inline-block rounded-full px-3 py-1 text-center text-sm leading-none " +
+        (count > 0 ? inProgress : complete)
+      return (
+        <div className="w-full text-center">
+          <span className={className}>{count > 0 ? "In progress..." : "Complete"}</span>
+        </div>
+      )
     },
   }),
   columnHelper.display({
@@ -197,6 +226,13 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
         createdAt: campaignsSchema.createdAt,
         name: campaignsSchema.name,
         receiptCount: sql<number>`COUNT(*)`,
+        inCompleteReceiptCount: sql<number>`
+          SUM(
+            CASE WHEN receipts.email_status IN ('not_sent',  'sent',  'delivery_delayed')
+            THEN 1
+            ELSE 0
+          END)
+        `,
       })
       .from(campaignsSchema)
       .where(eq(campaignsSchema.accountId, session.accountId ?? ""))

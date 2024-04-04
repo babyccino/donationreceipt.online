@@ -40,7 +40,7 @@ export function getCurrencySymbol(currency: SupportedCurrencies) {
   }
 }
 
-export function getCountryFlag(country: SupportedCountries) {
+export function getCountryFlagUnicode(country: SupportedCountries) {
   switch (country) {
     case "us":
       return "🇺🇸"

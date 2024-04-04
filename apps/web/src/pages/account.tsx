@@ -117,7 +117,7 @@ function mapCompany(company: Company) {
       <TableCell className="pt-3">
         <span
           className={
-            "rounded-lg p-2 font-mono " +
+            "rounded-lg p-2 " +
             (connected
               ? "text-muted-foreground bg-muted"
               : "text-destructive-foreground bg-destructive")

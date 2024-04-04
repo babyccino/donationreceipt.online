@@ -228,6 +228,7 @@ export default function Items(serialisedProps: SerialisedProps) {
               </FormDescription>
             </div>
             <DatePicker
+              popoverDirection="up"
               value={field.value ?? getDateRangeFromType(DateRangeType.LastYear)}
               onChange={(date: DateValueType) => {
                 if (!date || !date.endDate || !date.startDate) return

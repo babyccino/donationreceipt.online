@@ -25,7 +25,7 @@ import { NextRouter, useRouter } from "next/router"
 import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
-import { SupportedCountries, getCountryFlag, getCountryName, supportedCountries } from "@/lib/intl"
+import { SupportedCountries, getCountryName, supportedCountries } from "@/lib/intl"
 import { subscribe } from "@/lib/util/request"
 import { DataType as SwitchCompanyDataType } from "@/pages/api/switch-company"
 import { DataType as SwitchCountryDataType } from "@/pages/api/switch-country"
@@ -198,7 +198,7 @@ export default function Layout(
               </NavItem>
             )}
           </ul>
-          <div className="mt-auto space-y-2">
+          <div className="mt-auto flex gap-2 pt-4">
             <DarkModeToggle />
             {country && (
               <div className="text-right">
@@ -235,7 +235,9 @@ const NavItem = ({
   <Button
     className={
       "h-8 w-full justify-start gap-2 px-2 py-0 leading-3" +
-      (highlight ? " text-primary hover:text-primary" : " text-foreground/70 font-light")
+      (highlight
+        ? " text-primary hover:text-primary font-medium"
+        : " text-foreground/70 font-normal")
     }
     variant="ghost"
     asChild
@@ -255,23 +257,24 @@ const SwitchCountry = ({
 }) => (
   <Select defaultValue={currentCountry}>
     <SelectTrigger className="w-auto">
-      <SelectValue />
+      <CountryFlag className="h-5 w-5" country={currentCountry} />
     </SelectTrigger>
     <SelectContent>
-      {supportedCountries.map(supportedCountry => (
+      {supportedCountries.map(country => (
         <SelectItem
-          value={supportedCountry}
-          key={supportedCountry}
+          value={country}
+          key={country}
           onClick={async () => {
             const res = await fetchJsonData("/api/switch-country", {
               method: "POST",
-              body: { country: supportedCountry } satisfies SwitchCountryDataType,
+              body: { country } satisfies SwitchCountryDataType,
             })
             router.replace(router.asPath)
           }}
         >
           <span className="mr-2">
-            {getCountryFlag(supportedCountry)} {getCountryName(supportedCountry)}
+            <CountryFlag className="-mt-1 mr-2 inline-block h-5 w-5" country={country} />
+            {getCountryName(country)}
           </span>
         </SelectItem>
       ))}
@@ -317,3 +320,27 @@ const Companies = ({
     </SelectContent>
   </Select>
 )
+
+import US from "@/public/svg/country/us.svg"
+import CA from "@/public/svg/country/ca.svg"
+import GB from "@/public/svg/country/gb.svg"
+import AU from "@/public/svg/country/au.svg"
+
+export function CountryFlag({
+  country,
+  className,
+}: {
+  className?: string
+  country: SupportedCountries
+}) {
+  switch (country) {
+    case "us":
+      return <US className={className} />
+    case "ca":
+      return <CA className={className} />
+    case "gb":
+      return <GB className={className} />
+    case "au":
+      return <AU className={className} />
+  }
+}

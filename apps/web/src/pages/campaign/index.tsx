@@ -154,7 +154,7 @@ export default function CampaignList(props: SerialisedProps) {
           <p className="text-muted-foreground mb-4 text-sm">
             You can create a new campaign and start sending emails to your subscribers.
           </p>
-          <Button asChild variant="default">
+          <Button asChild variant="primary">
             <Link href="email">Create your first campaign!</Link>
           </Button>
         </div>

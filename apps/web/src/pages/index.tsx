@@ -94,13 +94,17 @@ export default function IndexPage({ filledIn, session }: Props) {
         >
           <CardHeader>
             <CardTitle>Generate your clients{"'"} receipts</CardTitle>
-            <CardDescription>Create receipts for all qualifying donations</CardDescription>
+            <CardDescription>
+              Create receipts for all qualifying donations. Receipts can be downloaded individually
+              or all together
+            </CardDescription>
           </CardHeader>
           {filledIn && filledIn.doneeDetails && filledIn.items && (
             <CardContent>
-              Receipts can be downloaded individually or all together
               <Tick />
-              <Note>We{"'"}re ready to create your receipts!</Note>
+              <p className="text-primary text-sm font-bold">
+                We{"'"}re ready to create your receipts!
+              </p>
             </CardContent>
           )}
         </Card>
@@ -116,7 +120,9 @@ export default function IndexPage({ filledIn, session }: Props) {
           {filledIn && filledIn.doneeDetails && filledIn.items && (
             <CardContent>
               <Tick />
-              <Note>We{"'"}re ready to send your receipts!</Note>
+              <p className="text-primary text-sm font-bold">
+                We{"'"}re ready to send your receipts!
+              </p>
             </CardContent>
           )}
         </Card>

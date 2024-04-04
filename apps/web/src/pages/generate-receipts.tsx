@@ -329,8 +329,8 @@ function DownloadAllFiles() {
 
   return (
     <div className="mb-4">
-      <h3 className="font-normal">Download all receipts</h3>
-      <p className="text-muted-foreground mb-2 text-sm">
+      <h3 className="text-sm font-medium">Download all receipts</h3>
+      <p className="text-muted-foreground mb-2 text-sm tracking-wide">
         Download all receipts for this month in a single zip file
       </p>
       <LoadingButton loading={loading} onClick={onClick} disabled={loading}>
@@ -369,13 +369,13 @@ function WithTable(props: {
   const columns = makeColumns(doneeInfo, "cad", new Date().toISOString(), subscribed)
 
   return (
-    <section className="flex h-full w-full max-w-2xl flex-col items-center p-8">
+    <section className="flex h-full w-full max-w-4xl flex-col items-center p-4">
       <ReceiptDialog />
       <Alert className="mb-4 sm:hidden">
         <ArrowRightIcon className="mr-2 h-4 w-4" />
         <AlertDescription>Scroll right to view/download individual receipts</AlertDescription>
       </Alert>
-      <div className="w-full max-w-3xl overflow-x-auto overflow-y-hidden sm:rounded-lg">
+      <div className="w-full overflow-x-auto sm:rounded-lg">
         {subscribed ? (
           <DataTable
             columns={columns}
@@ -390,11 +390,11 @@ function WithTable(props: {
         <div className="flex w-full flex-col items-start justify-center gap-4">
           <DownloadAllFiles />
           <div className="mb-4">
-            <h3 className="font-normal">Email your donors</h3>
-            <p className="text-muted-foreground mb-2 text-sm">
+            <h3 className="text-sm font-medium">Email your donors</h3>
+            <p className="text-muted-foreground mb-2 text-sm tracking-wide">
               You{"'"}re all set! You can email your receipts out to your donors.
             </p>
-            <Button asChild variant="secondary">
+            <Button asChild variant="primary">
               <Link href="/email">Email</Link>
             </Button>
           </div>

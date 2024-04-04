@@ -19,7 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from "components/dist/ui/form"
-import { useToast } from "components/dist/ui/use-toast"
+import { useToast } from "components/dist/ui/toast"
 import { fetchJsonData } from "utils/dist/request"
 import { Input } from "components/dist/ui/input"
 import { Textarea } from "components/dist/ui/textarea"

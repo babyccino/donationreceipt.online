@@ -67,8 +67,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "components/dist/ui/radio-group"
 import { Switch } from "components/dist/ui/switch"
 import { Textarea } from "components/dist/ui/textarea"
-import { ToastAction } from "components/dist/ui/toast"
-import { useToast } from "components/dist/ui/use-toast"
+import { ToastAction, useToast } from "components/dist/ui/toast"
 import {
   Campaign as DbCampaigns,
   Receipt as DbReceipts,

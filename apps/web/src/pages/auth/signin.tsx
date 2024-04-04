@@ -1,29 +1,23 @@
+import { zodResolver } from "@hookform/resolvers/zod"
 import { signIn } from "next-auth/react"
 import Image from "next/image"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
-
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Button } from "components/dist/ui/button"
+import { SignIn } from "@/components/qbo"
+import { Checkbox } from "components/dist/ui/checkbox"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "components/dist/ui/form"
-import { Textarea } from "components/dist/ui/textarea"
-import { toast } from "components/dist/ui/use-toast"
-
-import { SignIn } from "@/components/qbo"
-import { Checkbox } from "components/dist/ui/checkbox"
 import { Spinner } from "components/dist/ui/spinner"
-import Link from "next/link"
 
 const schema = z.object({
   agree: z.boolean().refine(value => value === true, {

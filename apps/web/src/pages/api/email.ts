@@ -16,11 +16,19 @@ import { ApiError } from "utils/dist/error"
 import { fetchJsonData, parseRequestBody } from "utils/dist/request"
 import { bufferToPngDataUrl, downloadImagesForDonee } from "utils/dist/db-helper"
 import { dataUrlToBase64 } from "utils/dist/image-helper"
+import { regularCharacterRegex } from "@/lib/util/regex"
 
 const DAY_LENGTH_MS = 1000 * 60 * 60 * 24
 
 export const parser = z.object({
-  emailBody: z.string(),
+  emailBody: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex)
+    .min(1),
+  campaignName: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex)
+    .min(1),
   recipientIds: z
     .array(z.string())
     .refine(arr => arr.length > 0)
@@ -59,7 +67,7 @@ function getRelevantDonations(
 
 const handler: AuthorisedHandler = async (req, res, session) => {
   if (!session.accountId) throw new ApiError(401, "user not connected")
-  const { emailBody, recipientIds, checksum } = parseRequestBody(parser, req.body)
+  const { emailBody, recipientIds, checksum, campaignName } = parseRequestBody(parser, req.body)
 
   const [row] = await Promise.all([
     db.query.accounts
@@ -159,6 +167,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
       .where(and(eq(campaigns.accountId, session.accountId))),
     db.insert(campaigns).values({
       id: campaignId,
+      name: campaignName,
       endDate: userData.endDate,
       startDate: userData.startDate,
       accountId: account.id,

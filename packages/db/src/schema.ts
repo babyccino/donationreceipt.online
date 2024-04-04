@@ -248,6 +248,7 @@ export const campaigns = sqliteTable(
   {
     id: text("id", { length: 191 }).primaryKey().notNull(),
     accountId: text("account_id", { length: 191 }).notNull(),
+    name: text("name").notNull(),
     startDate: integer("start_date", { mode: "timestamp_ms" }).notNull(),
     endDate: integer("end_date", { mode: "timestamp_ms" }).notNull(),
     createdAt: timestamp("created_at"),

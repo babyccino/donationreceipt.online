@@ -83,6 +83,7 @@ import { formatDateHtml } from "utils/dist/date"
 import { downloadImagesForDonee } from "utils/dist/db-helper"
 import { ApiError } from "utils/dist/error"
 import { fetchJsonData } from "utils/dist/request"
+import { Input } from "components/dist/ui/input"
 
 const WithBody = dynamic(() => import("components/dist/receipt/email").then(mod => mod.WithBody), {
   loading: () => null,
@@ -178,6 +179,13 @@ function getErrorText(error: ApiError) {
 }
 
 const schema = z.object({
+  campaignName: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex, {
+      message:
+        "This field can contain alphanumeric characters and the following special characters: -_,'&@#:()[]",
+    })
+    .min(1),
   emailBody: z
     .string({ required_error: "This field is required." })
     .regex(regularCharacterRegex, {
@@ -195,6 +203,8 @@ function subArrays<T>(arr: T[], size: number): T[][] {
   return arr.reduce<T[][]>((acc, _, i) => (i % size ? acc : [...acc, arr.slice(i, i + size)]), [])
 }
 function SelectRecipients({ allRecipients, form }: { allRecipients: Recipient[]; form: FormType }) {
+  const customRecipients = form.watch("customRecipients")
+
   const itemsMap = (recipient: Recipient) => (
     <FormField
       key={recipient.donorId}
@@ -206,21 +216,26 @@ function SelectRecipients({ allRecipients, form }: { allRecipients: Recipient[];
             <div className="space-y-0.5">
               <FormLabel
                 colorOnError={false}
-                className={recipient.status === RecipientStatus.NoEmail ? "text-muted" : ""}
+                className={
+                  recipient.status === RecipientStatus.NoEmail ? "text-muted-foreground" : ""
+                }
               >
                 {recipient.name}
               </FormLabel>
               <FormDescription
                 colorOnError={false}
-                className={recipient.status === RecipientStatus.NoEmail ? "text-muted" : ""}
+                className={
+                  recipient.status === RecipientStatus.NoEmail ? "text-muted-foreground/60" : ""
+                }
               >
                 {recipient.status === RecipientStatus.NoEmail ? "No email" : recipient.email}
               </FormDescription>
             </div>
             <FormControl>
               <Switch
+                className="transition-colors"
                 checked={field.value?.includes(recipient.donorId)}
-                disabled={recipient.status === RecipientStatus.NoEmail}
+                disabled={!customRecipients || recipient.status === RecipientStatus.NoEmail}
                 onCheckedChange={checked => {
                   return checked
                     ? field.onChange([...field.value, recipient.donorId])
@@ -233,8 +248,6 @@ function SelectRecipients({ allRecipients, form }: { allRecipients: Recipient[];
       }}
     />
   )
-
-  const customRecipients = form.watch("customRecipients")
 
   const PaginatedRecipients = () => {
     const [page, setPage] = useState(1)
@@ -340,7 +353,7 @@ function SelectRecipients({ allRecipients, form }: { allRecipients: Recipient[];
         name="recipients"
         render={() => (
           <FormItem
-            className={"relative pt-4 transition-opacity " + (customRecipients ? "" : "opacity-30")}
+            className={"relative pt-4 transition-opacity " + (customRecipients ? "" : "opacity-50")}
           >
             {allRecipients.length <= 12 ? (
               <div className="grid-cols-2 gap-2 sm:grid">{allRecipients.map(itemsMap)}</div>
@@ -448,6 +461,7 @@ function CompleteAccountEmail({ donee, allRecipients, campaign, checksum }: Comp
 
     const req: EmailDataType = {
       emailBody: data.emailBody,
+      campaignName: data.campaignName,
       checksum,
     }
     if (data.customRecipients) {
@@ -490,6 +504,24 @@ function CompleteAccountEmail({ donee, allRecipients, campaign, checksum }: Comp
     <section className="gap- 4flex-col flex w-full max-w-3xl justify-center p-8 pb-12 pt-4 align-middle sm:pt-12">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="campaignName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="mb-2 inline-block text-base" htmlFor="body">
+                  Campaign name
+                </FormLabel>
+                <FormControl>
+                  <Input placeholder="Campaign #1..." {...field} />
+                </FormControl>
+                <FormDescription>
+                  This will not be sent to your donors. It is for your reference only.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="emailBody"

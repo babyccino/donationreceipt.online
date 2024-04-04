@@ -27,11 +27,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "components/dist/ui/dropdown-menu"
-import { accounts, campaigns as campaignSchema, db, receipts, sessions } from "db"
+import { accounts, campaigns as campaignsSchema, db, receipts, sessions } from "db"
 import { formatDateHtml } from "utils/dist/date"
 import { ApiError } from "utils/dist/error"
 
-type Campaign = { id: string; createdAt: Date; receiptCount: number }
+type Campaign = {
+  id: string
+  name: string
+  createdAt: Date
+  receiptCount: number
+}
 type Props = {
   campaigns: Campaign[]
 } & LayoutProps
@@ -39,23 +44,24 @@ type SerialisedProps = SerialiseDates<Props>
 
 const columnHelper = createColumnHelper<Campaign>()
 const columns = [
-  columnHelper.accessor("id", {
+  columnHelper.accessor("name", {
     header({ column }) {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Id
+          Name
           <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
         </Button>
       )
     },
-    cell({ row }) {
-      const id = row.getValue("id") as string
+    cell({ row, cell }) {
+      const id = row.original.id
+      const name = cell.getValue()
       return (
         <Button asChild variant="ghost" className="block h-full w-full text-left">
-          <Link href={`campaign/${id}`}>{id}</Link>
+          <Link href={`campaign/${id}`}>{name}</Link>
         </Button>
       )
     },
@@ -72,9 +78,8 @@ const columns = [
         </Button>
       )
     },
-    cell({ row }) {
-      const date = row.getValue("createdAt")
-      if (!(date instanceof Date)) return "invalid date"
+    cell({ cell }) {
+      const date = cell.getValue()
       return <div className="w-full text-center">{formatDateHtml(date)}</div>
     },
   }),
@@ -93,8 +98,8 @@ const columns = [
         </Button>
       )
     },
-    cell({ row }) {
-      const count = row.getValue("receiptCount") as number
+    cell({ cell }) {
+      const count = cell.getValue()
       return <div className="w-full pr-4 text-right">{count.toString()}</div>
     },
   }),
@@ -188,14 +193,16 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     }),
     db
       .select({
-        id: campaignSchema.id,
-        createdAt: campaignSchema.createdAt,
-        receiptCount: sql<number>`count(*)`,
+        id: campaignsSchema.id,
+        createdAt: campaignsSchema.createdAt,
+        name: campaignsSchema.name,
+        receiptCount: sql<number>`COUNT(*)`,
       })
-      .from(campaignSchema)
-      .innerJoin(receipts, eq(campaignSchema.id, receipts.campaignId))
-      .orderBy(desc(campaignSchema.createdAt))
-      .groupBy(campaignSchema.id),
+      .from(campaignsSchema)
+      .where(eq(campaignsSchema.accountId, session.accountId ?? ""))
+      .innerJoin(receipts, eq(campaignsSchema.id, receipts.campaignId))
+      .orderBy(desc(campaignsSchema.createdAt))
+      .groupBy(campaignsSchema.id),
     getAccountList(session),
   ])
 

@@ -49,6 +49,6 @@ jobs:
         uses: oven-sh/setup-bun@v1
       - name: Create database
         working-directory: ./packages/db
-        run: bunx drizzle-kit push:sqlite
+        run: npm run drizzle:migrate && npm exec drizzle-kit push:sqlite -y
       - name: Run integration tests
         run: npm run test:integration

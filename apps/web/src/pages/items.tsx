@@ -97,7 +97,7 @@ const DatePicker = dynamic(import("react-tailwindcss-datepicker"), {
   loading: props => <DumbDatePicker />,
 })
 
-type Props = ({
+export type Props = ({
   items: Item[]
   detailsFilledIn: boolean
 } & PropsDateRange) &

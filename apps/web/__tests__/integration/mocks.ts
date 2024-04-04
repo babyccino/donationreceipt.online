@@ -270,7 +270,8 @@ export function createMockResponses(itemCount: number, donorCount: number) {
   for (let i = 0; i < itemCount; ++i) {
     const name = i + " Donations"
     const id = createId()
-    items.push({ name, id })
+    const description = "description"
+    items.push({ name, id, description })
     customerSalesReportColumns.push({
       ColTitle: name,
       ColType: "Amount",
@@ -284,7 +285,7 @@ export function createMockResponses(itemCount: number, donorCount: number) {
     itemQueryResponseItems.push({
       ...itemQueryResponseItemsShared,
       Id: id,
-      Description: "description",
+      Description: description,
       Name: name,
       FullyQualifiedName: name,
     })

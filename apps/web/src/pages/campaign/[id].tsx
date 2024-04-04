@@ -88,6 +88,21 @@ const columns = [
         </Button>
       )
     },
+    cell({ cell }) {
+      const val = cell.getValue()
+      return (
+        <div className="w-full text-center">
+          <span
+            className={cn(
+              "inline-block rounded-full px-3 py-1 text-center text-sm font-medium leading-none",
+              getPillColor(val),
+            )}
+          >
+            {val}
+          </span>
+        </div>
+      )
+    },
   }),
   columnHelper.display({
     id: "actions",
@@ -127,8 +142,8 @@ function DumbCampaign({
   recipients: RecipientStatus[]
 }) {
   return (
-    <div className="relative flex w-full flex-col items-center space-y-4 sm:py-8">
-      <div className="absolute left-0 top-0 p-4">
+    <div className="relative flex w-full flex-col items-center space-y-4 px-4 sm:py-8">
+      <div className="absolute left-0 top-0 p-2 sm:p-4 sm:py-6">
         <Button asChild variant="ghost">
           <Link href="/campaign">
             <ChevronLeftIcon className="mr-2 h-4 w-4" />
@@ -148,7 +163,9 @@ function DumbCampaign({
           {liveUpdating ? "updating..." : "complete"}
         </div>
       </div>
-      <DataTable columns={columns} data={recipients} />
+      <div className="w-full max-w-xl overflow-x-auto">
+        <DataTable columns={columns} data={recipients} />
+      </div>
     </div>
   )
 }

@@ -131,16 +131,20 @@ const columns = [
 export default function CampaignList(props: SerialisedProps) {
   const { campaigns } = deSerialiseDates(props)
   return (
-    <div className="flex max-w-2xl flex-col items-center space-y-4 px-4 sm:py-8">
+    <div className="relative flex w-full max-w-2xl flex-col items-center space-y-4 p-4 sm:py-8">
       {campaigns.length > 0 ? (
-        <div className="text-left">
-          <h1 className="mb-4 text-2xl">Your Campaigns</h1>
-          <p className="text-muted-foreground mb-4 text-sm">
-            Here are your previous campaigns. You can view the receipts sent for each campaign by
-            clicking on the campaign id.
-          </p>
-          <DataTable columns={columns} data={campaigns} />
-        </div>
+        <>
+          <div className="text-left">
+            <h1 className="mb-4 text-2xl">Your Campaigns</h1>
+            <p className="text-muted-foreground mb-4 text-sm">
+              Here are your previous campaigns. You can view the receipts sent for each campaign by
+              clicking on the campaign id.
+            </p>
+          </div>
+          <div className="w-full overflow-x-auto">
+            <DataTable columns={columns} data={campaigns} />
+          </div>
+        </>
       ) : (
         <div className="mt-6 w-full max-w-lg text-left sm:mt-36">
           <h1 className="mb-4 text-2xl">No campaigns</h1>

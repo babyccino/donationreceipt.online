@@ -16,6 +16,11 @@ import { getDonationRange, getThisYear } from "utils/dist/date"
 import { parseRequestBody } from "utils/dist/request"
 import { config } from "./env"
 
+const sesConfigSet = config.sesConfigSet
+
+if (!sesConfigSet && !(config.nodeEnv === "development" || config.nodeEnv === "test"))
+  throw new Error("SES_CONFIG_SET must be set in production")
+
 AWSLambda.init({
   dsn: "https://a7eee9df5205f682427e4adbe29637ea@o4506814407966720.ingest.sentry.io/4506814412947456",
   tracesSampleRate: 1.0,
@@ -143,7 +148,8 @@ export async function sendReceipts(props: EmailWorkerDataType) {
       "X-DATA-CAMPAIGN-ID": campaignId,
       "X-DATA-DONOR-ID": entry.donorId,
     }
-    if (config.sesConfigSet !== "test_val") headers["X-SES-CONFIGURATION-SET"] = config.sesConfigSet
+    if (sesConfigSet && sesConfigSet !== "test_val")
+      headers["X-SES-CONFIGURATION-SET"] = sesConfigSet
     const awsRes = await transporter.sendMail({
       from: { address: `noreply@${config.domain}`, name: companyName },
       to: entry.email,

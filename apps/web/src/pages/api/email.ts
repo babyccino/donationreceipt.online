@@ -16,21 +16,58 @@ import { ApiError } from "utils/dist/error"
 import { fetchJsonData, parseRequestBody } from "utils/dist/request"
 import { bufferToPngDataUrl, downloadImagesForDonee } from "utils/dist/db-helper"
 import { dataUrlToBase64 } from "utils/dist/image-helper"
+import { regularCharacterRegex } from "@/lib/util/regex"
 
 const DAY_LENGTH_MS = 1000 * 60 * 60 * 24
 
 export const parser = z.object({
-  emailBody: z.string(),
-  recipientIds: z.array(z.string()).refine(arr => arr.length > 0),
+  emailBody: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex)
+    .min(1),
+  campaignName: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex)
+    .min(1),
+  recipientIds: z
+    .array(z.string())
+    .refine(arr => arr.length > 0)
+    .optional(),
   checksum: z.string(),
 })
 export type EmailDataType = z.input<typeof parser>
 
 type DonationWithEmail = Donation & { email: string }
 
+function getRelevantDonations(
+  allDonations: Donation[],
+  clientRecipientIds?: string[],
+): DonationWithEmail[] {
+  // if the client did not specify recipientIds, return all donations with emails
+  if (!clientRecipientIds) {
+    return allDonations.filter((entry): entry is DonationWithEmail => Boolean(entry.email))
+  }
+
+  const allDonationIdsSet = new Set(allDonations.map(entry => entry.donorId))
+  if (clientRecipientIds.some(id => !allDonationIdsSet.has(id)))
+    throw new ApiError(
+      400,
+      `IDs were found in the request body which were not present in the calculated donations for this date range`,
+    )
+
+  const recipientIdsSet = new Set(clientRecipientIds)
+  const relevantDonations = allDonations.filter(
+    (entry): entry is DonationWithEmail =>
+      recipientIdsSet.has(entry.donorId) && Boolean(entry.email),
+  )
+  if (clientRecipientIds && relevantDonations.length !== clientRecipientIds.length)
+    throw new ApiError(400, "client requested an email for a donor without an email address")
+  return relevantDonations
+}
+
 const handler: AuthorisedHandler = async (req, res, session) => {
   if (!session.accountId) throw new ApiError(401, "user not connected")
-  const { emailBody, recipientIds, checksum } = parseRequestBody(parser, req.body)
+  const { emailBody, recipientIds, checksum, campaignName } = parseRequestBody(parser, req.body)
 
   const [row] = await Promise.all([
     db.query.accounts
@@ -107,20 +144,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
     throw new ApiError(400, "checksum mismatch")
 
   // throw if req.body.to is not a subset of the calculated donations
-  const donationIdSet = new Set(donations.map(entry => entry.donorId))
-  if (recipientIds.some(id => !donationIdSet.has(id)))
-    throw new ApiError(
-      500,
-      `IDs were found in the request body which were not present in the calculated donations for this date range`,
-    )
-
-  const recipientIdsSet = new Set(recipientIds)
-  const relevantDonations = donations.filter(
-    (entry): entry is DonationWithEmail => recipientIdsSet.has(entry.donorId) && Boolean(entry),
-  )
-
-  if (relevantDonations.length !== recipientIds.length)
-    throw new ApiError(400, "mismatch between ids")
+  const relevantDonations = getRelevantDonations(donations, recipientIds)
 
   const campaignId = createId()
   const ops = [
@@ -143,6 +167,7 @@ const handler: AuthorisedHandler = async (req, res, session) => {
       .where(and(eq(campaigns.accountId, session.accountId))),
     db.insert(campaigns).values({
       id: campaignId,
+      name: campaignName,
       endDate: userData.endDate,
       startDate: userData.startDate,
       accountId: account.id,

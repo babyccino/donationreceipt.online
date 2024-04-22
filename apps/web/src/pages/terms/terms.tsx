@@ -1,5 +1,3 @@
-import { Accordion } from "flowbite-react"
-
 import {
   H1,
   H3,
@@ -10,8 +8,12 @@ import {
   companyName,
   url,
 } from "@/components/agreements"
-
-const { Panel, Title, Content } = Accordion
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "components/dist/ui/accordion"
 
 const Terms = () => (
   <section className="m-8 max-w-4xl">
@@ -22,11 +24,11 @@ const Terms = () => (
       our Privacy Policy.
     </P>
     <P>The Site and appertaining products and services are provided by {companyName} Inc.</P>
-    <Accordion flush collapseAll>
+    <Accordion type="multiple" className="w-full">
       {InterpretationDefinitions}
-      <Panel>
-        <Title>Acceptance</Title>
-        <Content>
+      <AccordionItem value="Acceptance">
+        <AccordionTrigger>Acceptance</AccordionTrigger>
+        <AccordionContent>
           <P>
             Please read and acknowledge the following terms and conditions (<Q>Terms</Q>) that
             govern your use of {companyName} and its associated services. By continuing to browse
@@ -34,11 +36,11 @@ const Terms = () => (
             Policy, establish the relationship between you and {companyName} regarding the Site and
             the products and services offered.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Updates</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Updates">
+        <AccordionTrigger>Updates</AccordionTrigger>
+        <AccordionContent>
           <P>
             {companyName} reserves the right to modify, amend, suspend, terminate, upgrade, update,
             or otherwise alter these Terms, the Site, the Products, and the Services at any time
@@ -47,11 +49,11 @@ const Terms = () => (
             our Services after the effective date of any update, whether through account
             registration or general use, indicates your acceptance of the modified Terms.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Support Services</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Support Services">
+        <AccordionTrigger>Support Services</AccordionTrigger>
+        <AccordionContent>
           <P>
             If you have any questions or concerns about the Site, Products, or Services, please
             contact us using the information provided on our contact web page. We offer live chat
@@ -60,11 +62,11 @@ const Terms = () => (
             to respond promptly. Please ensure you provide detailed information regarding your
             service query for clear identification of your issue.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Payments</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Payments">
+        <AccordionTrigger>Payments</AccordionTrigger>
+        <AccordionContent>
           <P>
             You are responsible for providing accurate and up-to-date billing information. Unless
             required by law, all purchases are final and non-cancelable or non-refundable. In the
@@ -84,22 +86,22 @@ const Terms = () => (
             It is advisable to periodically review the terms and policies of the payment processor,
             as they regulate the services provided to you.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Account Registration and Security</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Account Registration and Security">
+        <AccordionTrigger>Account Registration and Security</AccordionTrigger>
+        <AccordionContent>
           <P>
             To access our Products or Services, you will need to create an account by completing all
             the required fields on the registration form. It is essential to provide accurate and
             complete information. You are solely responsible for any activity that occurs in your
             account, including any misuse or unauthorized access by third parties.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Account Suspension, Termination</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Account Suspension, Termination">
+        <AccordionTrigger>Account Suspension, Termination</AccordionTrigger>
+        <AccordionContent>
           <P>
             We encourage you to report any violations of our Terms. Users found engaging in
             activities that may constitute an actual or alleged breach of these Terms, such as
@@ -118,11 +120,11 @@ const Terms = () => (
             of these provisions may result in the immediate termination of your access to our
             Products or Services.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Service Eligibility</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Service Eligibility">
+        <AccordionTrigger>Service Eligibility</AccordionTrigger>
+        <AccordionContent>
           <P>
             {companyName} encourages parents, legal guardians, and responsible adults to actively
             participate in ensuring the safe use of the Internet by children and minors. Our
@@ -132,11 +134,11 @@ const Terms = () => (
             information from individuals under the age of eighteen (18) and will promptly delete any
             such information.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Prohibited Activities</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Prohibited Activities">
+        <AccordionTrigger>Prohibited Activities</AccordionTrigger>
+        <AccordionContent>
           <P>
             As a user, you agree not to engage in, promote, or facilitate the use or access of the
             Site, Products, or Services to:
@@ -189,11 +191,11 @@ const Terms = () => (
               Services.
             </li>
           </Ol>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Ownership</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Ownership">
+        <AccordionTrigger>Ownership</AccordionTrigger>
+        <AccordionContent>
           <P>
             The trademarks, copyrights, service marks, trade names, and other intellectual property
             rights displayed on the Site, Products, or Services belong to {companyName} or its
@@ -217,11 +219,11 @@ const Terms = () => (
             our affiliates, licensors, or content providers may seek equitable relief or other
             remedies for breach of these Terms.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Licenses for {companyName}</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Licenses for {companyName}">
+        <AccordionTrigger>Licenses for {companyName}</AccordionTrigger>
+        <AccordionContent>
           <H3>Limited License</H3>
           <P>
             {companyName} grants you a limited, non-exclusive, revocable, and non-transferable
@@ -245,11 +247,11 @@ const Terms = () => (
             submitting content, you represent and warrant that you have the necessary rights or
             authorizations to do so.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Representations and Warranties</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Representations and Warranties">
+        <AccordionTrigger>Representations and Warranties</AccordionTrigger>
+        <AccordionContent>
           <P>
             You hereby declare, ensure, and promise that: (i) your utilization of our Site, Products
             and Services, as well as all the data you upload and use, shall at all times comply with
@@ -261,11 +263,11 @@ const Terms = () => (
             privacy, or rights of publicity, and any use, collection, and disclosure authorized
             herein is not inconsistent with the terms of any applicable privacy policies.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Term, Termination</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Term, Termination">
+        <AccordionTrigger>Term, Termination</AccordionTrigger>
+        <AccordionContent>
           <P>
             The term hereof shall commence on the earliest of the following dates: (i) the first
             access to the Site; (ii) your first access or execution of any Products or Services; or
@@ -282,20 +284,20 @@ const Terms = () => (
             {"'"}s decision to no longer make the Site, the Products, or the Services available for
             use, at its sole and final discretion.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Termination by you Without Cause</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Termination by you Without Cause">
+        <AccordionTrigger>Termination by you Without Cause</AccordionTrigger>
+        <AccordionContent>
           <P>
             You may terminate your subscription at any time by permanently rendering inaccessible
             any downloaded software and computer applications to which you have access.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Termination for Cause by {companyName}</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Termination for Cause by {companyName}">
+        <AccordionTrigger>Termination for Cause by {companyName}</AccordionTrigger>
+        <AccordionContent>
           <P>
             These Terms, along with any licenses granted hereunder, may or will automatically
             terminate if you breach any of the terms and conditions stated herein. Upon termination
@@ -303,11 +305,11 @@ const Terms = () => (
             provided or generated thereby, shall cease, and you shall not be entitled to any
             compensation, credit, remedy, or refund of any nature.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Third Party Links</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Third Party Links">
+        <AccordionTrigger>Third Party Links</AccordionTrigger>
+        <AccordionContent>
           <P>
             The Site, the Products, and the Services may contain hyperlinks to other websites. These
             links are provided for your personal convenience and to provide you with further
@@ -323,11 +325,11 @@ const Terms = () => (
             of any kind incurred as a result of any such dealings or as a result of the presence of
             third-party advertisers.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>User Privacy</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="User Privacy">
+        <AccordionTrigger>User Privacy</AccordionTrigger>
+        <AccordionContent>
           <P>
             By providing us with any data or personally identifiable information, you agree to our
             Policy, which includes the collection, processing, storage, and disclosure of such
@@ -335,11 +337,11 @@ const Terms = () => (
             will request your express consent, including for inclusion in our newsletters, updates,
             and follow-ups. For more information, please read our Policy.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>No Warranty</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="No Warranty">
+        <AccordionTrigger>No Warranty</AccordionTrigger>
+        <AccordionContent>
           <P>
             Neither {companyName}, nor its affiliates, subsidiaries, officers, employees, and agents
             guarantee that the Site, the Products, or the Services will be error-free,
@@ -370,11 +372,11 @@ const Terms = () => (
             purpose, operation, integration, adequacy, suitability, title, non-infringement,
             non-interference with use and/or enjoyment.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Disclaimer of Damages</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Disclaimer of Damages">
+        <AccordionTrigger>Disclaimer of Damages</AccordionTrigger>
+        <AccordionContent>
           <P>
             In no event shall {companyName}, its affiliates, clients, agents, officers, licensors,
             distributors, and/or any authorized third party be held liable for any special,
@@ -387,11 +389,11 @@ const Terms = () => (
             affiliates, clients, licensors, and/or distributors have been advised of the possibility
             of such damages.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Limitation of Liability</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Limitation of Liability">
+        <AccordionTrigger>Limitation of Liability</AccordionTrigger>
+        <AccordionContent>
           <P>
             In no event shall {companyName} , or its affiliates , clients , licensors , and/or
             distributors liability for all damages (except as required by applicable law) exceed the
@@ -406,11 +408,11 @@ const Terms = () => (
             licensors, and distributors are third-party beneficiaries and may enforce these Terms
             against you.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Indemnification</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Indemnification">
+        <AccordionTrigger>Indemnification</AccordionTrigger>
+        <AccordionContent>
           <P>
             By agreeing to these Terms, you acknowledge and agree to indemnify, hold harmless, and
             defend {companyName}, its affiliates, clients, agents, officers, licensors,
@@ -425,14 +427,14 @@ const Terms = () => (
             infringement, or misappropriation of any third-party proprietary or intellectual
             property rights, including privacy rights.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="">
+        <AccordionTrigger>
           Events outside of {companyName}
           {"'"}s Control.
-        </Title>
-        <Content>
+        </AccordionTrigger>
+        <AccordionContent>
           <P>
             {companyName} shall not be held responsible or liable for any failure or delay in the
             performance of its obligations under these Terms caused by forces beyond its control,
@@ -443,11 +445,11 @@ const Terms = () => (
             reasonable commercial efforts consistent with industry practices to resume performance
             as soon as practicable under the circumstances.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Governing Language</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Governing Language">
+        <AccordionTrigger>Governing Language</AccordionTrigger>
+        <AccordionContent>
           <P>
             From time to time, our Terms may be translated into other languages for your
             convenience. However, the English language version of these documents shall prevail and
@@ -455,11 +457,11 @@ const Terms = () => (
             the English language version and any translated version, the English language version
             will prevail.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>General</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="General">
+        <AccordionTrigger>General</AccordionTrigger>
+        <AccordionContent>
           <H3>Assignment</H3>
           <P>These Terms shall benefit any successors of the parties.</P>
           <H3>Content Moderation</H3>
@@ -528,11 +530,11 @@ const Terms = () => (
             Failure by {companyName} to enforce any rights under these Terms shall not be construed
             as a waiver of such rights.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Applicable Law, Waiver, Dispute Resolution</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Applicable Law, Waiver, Dispute Resolution">
+        <AccordionTrigger>Applicable Law, Waiver, Dispute Resolution</AccordionTrigger>
+        <AccordionContent>
           <H3>Waiver of Class Actions, Non-Individualized Relief</H3>
           <P>
             You acknowledge and accept that claims against {companyName} shall only be pursued on an
@@ -552,11 +554,11 @@ const Terms = () => (
             parties shall be governed by the laws of the Province where {companyName} Inc. operates
             in Canada, without considering conflicts of law principles.
           </P>
-        </Content>
-      </Panel>
-      <Panel>
-        <Title>Contact</Title>
-        <Content>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="Contact">
+        <AccordionTrigger>Contact</AccordionTrigger>
+        <AccordionContent>
           <P>
             If you have any inquiries or concerns regarding us, the Site, the Products, our
             Services, or these Terms, please reach out to us using the contact information provided
@@ -566,8 +568,8 @@ const Terms = () => (
             </a>
             .
           </P>
-        </Content>
-      </Panel>
+        </AccordionContent>
+      </AccordionItem>
     </Accordion>
   </section>
 )

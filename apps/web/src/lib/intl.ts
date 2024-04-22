@@ -40,7 +40,7 @@ export function getCurrencySymbol(currency: SupportedCurrencies) {
   }
 }
 
-export function getCountryFlag(country: SupportedCountries) {
+export function getCountryFlagUnicode(country: SupportedCountries) {
   switch (country) {
     case "us":
       return "🇺🇸"
@@ -50,5 +50,18 @@ export function getCountryFlag(country: SupportedCountries) {
       return "🇬🇧"
     case "au":
       return "🇦🇺"
+  }
+}
+
+export function getCountryName(country: SupportedCountries) {
+  switch (country) {
+    case "us":
+      return "United States"
+    case "ca":
+      return "Canada"
+    case "gb":
+      return "United Kingdom"
+    case "au":
+      return "Australia"
   }
 }

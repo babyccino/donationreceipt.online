@@ -9,7 +9,7 @@ import { createUser, getMockApiContext } from "../mocks"
 
 describe("items api route", () => {
   test("sets all fields of test user", async () => {
-    const { account, session, deleteUser } = await createUser(true)
+    const { account, session } = await createUser(true)
 
     const items = ["1", "2", "3"]
     const body: DataType = {

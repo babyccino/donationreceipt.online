@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import { z } from "zod"
 
 import { manageSubscriptionStatusChange, stripe } from "@/lib/stripe"

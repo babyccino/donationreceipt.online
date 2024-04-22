@@ -8,7 +8,8 @@ import { serialiseDates } from "@/lib/util/nextjs-helper"
 import { db, doneeInfos, userDatas } from "db"
 import { createUser, getMockApiContext, mockDoneeInfo, mockResponses } from "../mocks"
 
-import { getServerSideProps } from "@/pages/items"
+import { Props, getServerSideProps } from "@/pages/items"
+import { DateRangeType } from "utils/dist/date"
 
 describe("items page getServerSideProps", () => {
   test("getServerSideProps returns sign in redirect when user is not signed in", async () => {
@@ -31,7 +32,7 @@ describe("items page getServerSideProps", () => {
   })
 
   test("getServerSideProps returns expected items when user is connected", async () => {
-    const { user, account, session, deleteUser } = await createUser(true)
+    const { user, account, session } = await createUser(true)
 
     const ctx = getMockApiContext("GET", session.sessionToken, {})
     const props = await getServerSideProps(ctx as any)
@@ -64,7 +65,7 @@ describe("items page getServerSideProps", () => {
   })
 
   test("getServerSideProps returns selected items when they are in db", async () => {
-    const { user, account, session, deleteUser } = await createUser(true)
+    const { user, account, session } = await createUser(true)
 
     const selectedItems = ["1", "2"]
     const startDate = new Date("2023-01-01")
@@ -81,9 +82,9 @@ describe("items page getServerSideProps", () => {
 
     const ctx = getMockApiContext("GET", session.sessionToken, {})
     const props = await getServerSideProps(ctx as any)
-    const expectedProps = serialiseDates({
+    const unserialisedExpectedProps = {
       itemsFilledIn: true,
-      dateRange: { startDate: startDate, endDate: endDate },
+      dateRangeType: DateRangeType.LastYear,
       selectedItems,
       session: {
         accountId: account.id,
@@ -101,7 +102,8 @@ describe("items page getServerSideProps", () => {
         { companyName: account.companyName as string, id: account.id },
       ] satisfies LayoutProps["companies"],
       selectedAccountId: session.accountId,
-    } as const)
+    } satisfies Props
+    const expectedProps = serialiseDates(unserialisedExpectedProps)
     expect(props).toEqual({ props: expectedProps })
 
     const doneeInfo = mockDoneeInfo(account.id)

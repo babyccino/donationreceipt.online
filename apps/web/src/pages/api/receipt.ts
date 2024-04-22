@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm"
 import JSZip from "jszip"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import { ReceiptPdfDocument } from "components/dist/receipt/pdf"
 import { db, accounts, campaigns } from "db"

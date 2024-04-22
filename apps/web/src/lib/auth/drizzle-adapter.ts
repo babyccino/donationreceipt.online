@@ -2,7 +2,7 @@ import { createId } from "@paralleldrive/cuid2"
 import { and, desc, eq, gt, isNotNull, or } from "drizzle-orm"
 import { LibSQLDatabase } from "drizzle-orm/libsql"
 import { Adapter, AdapterAccount, AdapterSession } from "next-auth/adapters"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import { Schema, accounts, sessions, users, verificationTokens } from "db"
 import { oneHrFromNow } from "utils/dist/date"

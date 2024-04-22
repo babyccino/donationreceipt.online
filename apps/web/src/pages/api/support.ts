@@ -1,7 +1,7 @@
 import * as aws from "@aws-sdk/client-ses"
 import { createId } from "@paralleldrive/cuid2"
 import { and, eq, gt, sql } from "drizzle-orm"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 

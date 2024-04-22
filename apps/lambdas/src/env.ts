@@ -10,7 +10,6 @@ const vitalKeys = [
   "SENTRY_AUTH_TOKEN",
 
   "DOMAIN",
-  "SES_CONFIG_SET",
 ] as const
-const nonVitalKeys = ["TEST_EMAIL", "NODE_ENV"] as const
+const nonVitalKeys = ["TEST_EMAIL", "NODE_ENV", "SES_CONFIG_SET"] as const
 export const config = getConfig({ vitalKeys, nonVitalKeys })

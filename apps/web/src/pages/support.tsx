@@ -1,100 +1,135 @@
-import { Label, TextInput, Textarea } from "flowbite-react"
-import { FormEventHandler, useRef, useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { FormEventHandler, useEffect, useRef, useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-import { EmailSentToast, LoadingSubmitButton } from "@/components/ui"
-import { htmlRegularCharactersRegexString, regularCharacterHelperText } from "@/lib/util/regex"
+import { LoadingSubmitButton } from "@/components/ui"
+import {
+  htmlRegularCharactersRegexString,
+  regularCharacterHelperText,
+  regularCharacterRegex,
+} from "@/lib/util/regex"
 import { DataType as ContactDataType } from "@/pages/api/support"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "components/dist/ui/form"
+import { useToast } from "components/dist/ui/toast"
 import { fetchJsonData } from "utils/dist/request"
+import { Input } from "components/dist/ui/input"
+import { Textarea } from "components/dist/ui/textarea"
+
+const schema = z.object({
+  from: z.string({ required_error: "This field is required." }).email(),
+  subject: z
+    .string({ required_error: "This field is required." })
+    .regex(regularCharacterRegex)
+    .min(1),
+  body: z.string({ required_error: "This field is required." }).regex(regularCharacterRegex).min(1),
+})
+type Schema = z.infer<typeof schema>
 
 export default function Support() {
-  const formRef = useRef<HTMLFormElement>(null)
-  const [showEmailSentToast, setShowEmailSentToast] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+  const form = useForm<Schema>({
+    resolver: zodResolver(schema),
+  })
 
-  function getFormData() {
-    if (!formRef.current) throw new Error("Form html element has not yet been initialised")
-
-    const formData = new FormData(formRef.current)
-
-    const from = formData.get("from") as string
-    const subject = formData.get("subject") as string
-    const body = formData.get("body") as string
-
-    return {
-      from,
-      subject,
-      body,
-    }
-  }
-
-  const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
+  const onSubmit = async (data: Schema) => {
     if (loading) return
     setLoading(true)
-    event.preventDefault()
-    const formData: ContactDataType = getFormData()
-    const apiResponse = await fetchJsonData("/api/support", { method: "POST", body: formData })
+    try {
+      const apiResponse = await fetchJsonData("/api/support", {
+        method: "POST",
+        body: data satisfies ContactDataType,
+      })
+      toast({ description: "Message sent successfully." })
+    } catch (e) {
+      toast({
+        variant: "desctructive",
+        title: "Uh oh! Something went wrong.",
+        description: "An error occurred while sending the message.",
+      })
+    }
     setLoading(false)
-    setShowEmailSentToast(true)
   }
 
   return (
-    <section>
-      <div className="mx-auto max-w-screen-md px-4 py-8 lg:py-16">
-        <h2 className="mb-4 text-center text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-          Contact Us
-        </h2>
-        <p className="mb-8 text-center font-light text-gray-500 sm:text-xl lg:mb-16 dark:text-gray-400">
-          Got a technical issue? Want to send feedback? Let us know.
-        </p>
-        <form ref={formRef} onSubmit={onSubmit} className="space-y-8">
-          <p>
-            <Label className="mb-2 inline-block" htmlFor="from">
-              Your email
-            </Label>
-            <TextInput
+    <section className="flex w-full justify-center p-4 sm:min-h-screen sm:items-center">
+      <div className="w-full max-w-xl">
+        <div className="mb-6 space-y-2">
+          <h1 className="text-3xl font-bold">Contact Support</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Please fill out the form below to open a support ticket.
+          </p>
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4">
+            <FormField
+              control={form.control}
               name="from"
-              id="from"
-              type="email"
-              minLength={5}
-              placeholder="name@email.com"
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="mb-2 inline-block" htmlFor="from">
+                    Your email address
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="john.smith@gmail.com" type="email" {...field} />
+                  </FormControl>
+                  {/* <FormDescription></FormDescription> */}
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </p>
-          <p>
-            <Label className="mb-2 inline-block" htmlFor="subject">
-              Subject
-            </Label>
-            <TextInput
+            <FormField
+              control={form.control}
               name="subject"
-              id="subject"
-              pattern={htmlRegularCharactersRegexString}
-              minLength={5}
-              title={regularCharacterHelperText}
-              placeholder="Let us know how we can help you"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="mb-2 inline-block" htmlFor="subject">
+                    The subject of your support request
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your summary here." {...field} />
+                  </FormControl>
+                  <FormDescription>Give a summary of the issue you{"'"}re facing.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </p>
-          <p>
-            <Label className="mb-2 inline-block" htmlFor="body">
-              Please describe the issue you{"'"}re having
-            </Label>
-            <Textarea
+            <FormField
+              control={form.control}
               name="body"
-              id="body"
-              minLength={5}
-              rows={6}
-              placeholder="How can we help you?..."
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="mb-2 inline-block" htmlFor="body">
+                    Message
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-32"
+                      placeholder="Type your message here."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    We welcome any and all feedback! If you are having an issue please be detailed
+                    as possible in your description.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </p>
-          <LoadingSubmitButton
-            loading={loading}
-            className="bg-primary-700 hover:bg-primary-800 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-          >
-            Send message
-          </LoadingSubmitButton>
-        </form>
+            <LoadingSubmitButton loading={loading}>Send message</LoadingSubmitButton>
+          </form>
+        </Form>
       </div>
-      {showEmailSentToast && <EmailSentToast onDismiss={() => setShowEmailSentToast(false)} />}
     </section>
   )
 }

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Accordion } from "flowbite-react"
-const { Panel, Title, Content } = Accordion
+import { AccordionContent, AccordionItem, AccordionTrigger } from "components/dist/ui/accordion"
 
 export const P = ({ children }: { children: ReactNode }) => (
   <p className="mb-4 font-light text-gray-500 sm:text-lg dark:text-gray-400">{children}</p>
@@ -116,9 +115,9 @@ const Definitions = () => (
   </>
 )
 export const InterpretationDefinitions = (
-  <Panel>
-    <Title>Interpretation and Definitions</Title>
-    <Content>
+  <AccordionItem value="interpretation&definitions">
+    <AccordionTrigger>Interpretation and Definitions</AccordionTrigger>
+    <AccordionContent>
       <H2>Interpretation</H2>
       <P>
         The words of which the initial letter is capitalized have meanings defined under the
@@ -127,8 +126,8 @@ export const InterpretationDefinitions = (
       </P>
       <H2>Definitions</H2>
       <Definitions />
-    </Content>
-  </Panel>
+    </AccordionContent>
+  </AccordionItem>
 )
 export const email = "gus.ryan163@gmail.com"
 export const companyName = "DonationReceipt.online"

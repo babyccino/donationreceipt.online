@@ -1,16 +1,15 @@
 import { describe, expect, mock, test } from "bun:test"
-
 import makeChecksum from "checksum"
-import { desc, eq, sql } from "drizzle-orm"
 import { NextApiRequest, NextApiResponse } from "next"
+import { createId } from "@paralleldrive/cuid2"
 
 import { storageBucket } from "db/dist/firebase"
-import { db, campaigns, doneeInfos, receipts, subscriptions, userDatas } from "db"
+import { db, doneeInfos, receipts, subscriptions, userDatas } from "db"
 import { getDonations } from "@/lib/qbo-api"
 import { uploadWebpImage } from "utils/dist/image-helper-server"
 import handler, { EmailDataType } from "@/pages/api/email"
-import { createId } from "@paralleldrive/cuid2"
 import { createUser, mockResponses } from "../mocks"
+import { eq } from "drizzle-orm"
 
 describe("email", () => {
   test("should send email", async () => {
@@ -79,6 +78,7 @@ describe("email", () => {
       checksum,
       emailBody: "test email body",
       recipientIds: mockResponses.customers.map(({ donorId }) => donorId),
+      campaignName: "test-campaign",
     }
 
     const req = {
@@ -114,7 +114,9 @@ describe("email", () => {
     expect(emailRes.campaignId).toBeDefined()
     expect(status).toHaveBeenCalledWith(200)
 
-    const dbReceipts = await db.query.receipts.findMany()
+    const dbReceipts = await db.query.receipts.findMany({
+      where: eq(receipts.campaignId, emailRes.campaignId),
+    })
     expect(dbReceipts.length).toBe(donations.length)
 
     for (const donor of donations) {

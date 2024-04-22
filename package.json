@@ -8,6 +8,7 @@
     "dev": "npm exec turbo dev",
     "build": "npm exec turbo build",
     "test:unit": "npm exec turbo test:unit",
+    "test:integration": "npm exec turbo test:integration",
     "patch": "patch-package",
     "patch:generate": "patch-package jose"
   },

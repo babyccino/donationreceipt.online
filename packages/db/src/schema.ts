@@ -3,15 +3,7 @@ import { customType, index, integer, sqliteTable, text, uniqueIndex } from "driz
 import { ProviderType } from "next-auth/providers"
 import type { Stripe } from "stripe"
 
-export type EmailStatus =
-  | "not_sent"
-  | "sent"
-  | "delivered"
-  | "delivery_delayed"
-  | "complained"
-  | "bounced"
-  | "opened"
-  | "clicked"
+import { EmailStatus } from "types"
 
 const timestamp = (name: string) =>
   integer(name, { mode: "timestamp_ms" })
@@ -248,6 +240,7 @@ export const campaigns = sqliteTable(
   {
     id: text("id", { length: 191 }).primaryKey().notNull(),
     accountId: text("account_id", { length: 191 }).notNull(),
+    name: text("name").notNull(),
     startDate: integer("start_date", { mode: "timestamp_ms" }).notNull(),
     endDate: integer("end_date", { mode: "timestamp_ms" }).notNull(),
     createdAt: timestamp("created_at"),

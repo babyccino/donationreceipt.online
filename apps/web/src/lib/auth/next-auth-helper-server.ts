@@ -4,7 +4,7 @@ import { NextApiRequest, NextApiResponse, Redirect } from "next"
 import { getServerSession } from "next-auth"
 import { JWT, encode } from "next-auth/jwt"
 import { getCsrfToken } from "next-auth/react"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 
 import crypto from "@/lib/crypto"
 import { config } from "@/lib/env"

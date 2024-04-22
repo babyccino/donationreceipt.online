@@ -1,11 +1,14 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { ArrowsUpDownIcon } from "@heroicons/react/24/solid"
+import { ChevronLeftIcon, DotsHorizontalIcon } from "@radix-ui/react-icons"
+import { and, desc, eq } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
-import { useRouter } from "next/router"
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { ApiError } from "utils/dist/error"
 
 import { LayoutProps } from "@/components/layout"
+import { DataTable } from "@/components/table"
 import {
   AccountStatus,
   disconnectedRedirect,
@@ -15,8 +18,20 @@ import {
 } from "@/lib/auth/next-auth-helper-server"
 import { config } from "@/lib/env"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
+import { cn } from "@/lib/utils"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
-import { EmailStatus, accounts, db, receipts, sessions } from "db"
+import { createColumnHelper } from "@tanstack/react-table"
+import { Button } from "components/dist/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "components/dist/ui/dropdown-menu"
+import { accounts, db, receipts, sessions } from "db"
+import { EmailStatus } from "types"
 
 type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
 type Props = {
@@ -28,29 +43,138 @@ type Props = {
 const getPillColor = (status: EmailStatus) => {
   switch (status) {
     case "sent":
-      return "bg-gray-300 text-gray-900 dark:text-gray-200 dark:bg-zinc-800"
+      return "bg-gray-200 text-gray-800 dark:text-gray-200 dark:bg-zinc-800"
     case "not_sent":
-      return "bg-red-300 text-gray-900 dark:text-gray-200 dark:bg-red-900"
+      return "bg-red-200 text-red-800 dark:text-red-200 dark:bg-red-900"
     case "delivery_delayed":
-      return "bg-stone-300 text-gray-900 dark:text-gray-200 dark:bg-stone-700"
+      return "bg-stone-200 text-stone-800 dark:text-stone-200 dark:bg-stone-700"
     case "delivered":
-      return "bg-green-300 text-gray-900 dark:text-gray-200 dark:bg-green-900"
+      return "bg-green-200 text-green-800 dark:text-green-200 dark:bg-green-900"
     case "opened":
-      return "bg-cyan-300 text-gray-900 dark:text-gray-200 dark:bg-cyan-900"
+      return "bg-cyan-200 text-cyan-800 dark:text-cyan-200 dark:bg-cyan-900"
     case "clicked":
-      return "bg-blue-300 text-gray-900 dark:text-gray-200 dark:bg-blue-900"
+      return "bg-blue-200 text-blue-800 dark:text-blue-200 dark:bg-blue-900"
     case "bounced":
-      return "bg-red-300 text-gray-900 dark:text-gray-200 dark:bg-red-900"
+      return "bg-red-200 text-red-800 dark:text-red-200 dark:bg-red-900"
     case "complained":
     default:
-      return "bg-orange-300 text-gray-900 dark:text-gray-200 dark:bg-orange-800"
+      return "bg-orange-200 text-orange-800 dark:text-orange-200 dark:bg-orange-800"
   }
 }
 
+const columnHelper = createColumnHelper<RecipientStatus>()
+const columns = [
+  columnHelper.accessor("email", {
+    header({ column }) {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Email
+          <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+  }),
+  columnHelper.accessor("emailStatus", {
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Email Status
+          <ArrowsUpDownIcon className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell({ cell }) {
+      const val = cell.getValue()
+      return (
+        <div className="w-full text-center">
+          <span
+            className={cn(
+              "inline-block rounded-full px-3 py-1 text-center text-sm leading-none",
+              getPillColor(val),
+            )}
+          >
+            {val}
+          </span>
+        </div>
+      )
+    },
+  }),
+  columnHelper.display({
+    id: "actions",
+    header: "Actions",
+    enableHiding: false,
+    cell({ row }) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <DotsHorizontalIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="p-0">
+              <Button asChild variant="ghost">
+                <a className="cursor-pointer" href={`mailto:${row.getValue("email")}`}>
+                  Email Donor
+                </a>
+              </Button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  }),
+]
+
+function DumbCampaign({
+  liveUpdating,
+  recipients,
+}: {
+  liveUpdating: boolean
+  recipients: RecipientStatus[]
+}) {
+  return (
+    <div className="relative flex w-full flex-col items-center space-y-4 px-4 sm:py-8">
+      <div className="absolute left-0 top-0 p-2 sm:p-4 sm:py-6">
+        <Button asChild variant="ghost">
+          <Link href="/campaign">
+            <ChevronLeftIcon className="mr-2 h-4 w-4" />
+            Campaigns
+          </Link>
+        </Button>
+      </div>
+      <div className="flex items-center justify-center rounded-lg">
+        <div
+          className={cn(
+            "rounded-full px-3 py-1 text-center text-xs font-medium leading-none",
+            liveUpdating
+              ? "animate-pulse bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              : "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200",
+          )}
+        >
+          {liveUpdating ? "updating..." : "complete"}
+        </div>
+      </div>
+      <div className="w-full max-w-xl overflow-x-auto">
+        <DataTable columns={columns} data={recipients} />
+      </div>
+    </div>
+  )
+}
+
 export default function Campaign({ recipients: initialRecipients, refresh, webhookUrl }: Props) {
-  const router = useRouter()
   const [recipients, setRecipients] = useState(initialRecipients)
-  const webhookRef = useRef<WebSocket>()
+  const [liveUpdating, setLiveUpdating] = useState(refresh)
+  const websocketRed = useRef<WebSocket>()
 
   useEffect(() => {
     if (!refresh) return
@@ -73,14 +197,13 @@ export default function Campaign({ recipients: initialRecipients, refresh, webho
         return newRecipients
       })
     }
-    webhookRef.current = ws
+    websocketRed.current = ws
     return () => ws.close()
   }, [refresh, webhookUrl])
 
   // if all the emails have been resolved (either sent, bounced, etc. doesn't matter), close the websocket
   useEffect(() => {
-    if (refresh) return
-    if (!webhookRef.current) return
+    if (!liveUpdating || !websocketRed.current) return
     if (
       recipients.some(
         r =>
@@ -90,50 +213,13 @@ export default function Campaign({ recipients: initialRecipients, refresh, webho
       )
     )
       return
-    console.log("Closing webhook")
-    webhookRef.current.close()
-  }, [recipients, refresh])
 
-  return (
-    <div className="sm:py-8">
-      <table className="border-collapse overflow-hidden rounded-lg">
-        <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
-          <tr>
-            <th scope="col" className="cursor-pointer px-6 py-3">
-              Donor Email
-            </th>
-            <th scope="col" className="cursor-pointer px-6 py-3">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {recipients.map((recipient, i) => (
-            <tr
-              key={i}
-              className="relative border-b bg-white dark:border-gray-700 dark:bg-gray-800"
-            >
-              <th
-                scope="row"
-                className="whitespace-nowrap px-6 py-3 font-medium text-gray-900 dark:text-white"
-              >
-                {recipient.email}
-              </th>
-              <th
-                scope="row"
-                className={
-                  "whitespace-nowrap px-6 py-3 font-mono font-medium " +
-                  getPillColor(recipient.emailStatus)
-                }
-              >
-                {recipient.emailStatus}
-              </th>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+    console.log("Closing webhook")
+    setLiveUpdating(false)
+    websocketRed.current.close()
+  }, [recipients, liveUpdating])
+
+  return <DumbCampaign liveUpdating={liveUpdating} recipients={recipients} />
 }
 
 const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params }) => {
@@ -220,4 +306,5 @@ const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params
     } satisfies Props,
   }
 }
+
 export const getServerSideProps = interceptGetServerSidePropsErrors(_getServerSideProps)

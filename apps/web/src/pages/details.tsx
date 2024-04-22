@@ -1,12 +1,12 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { Label, TextInput } from "flowbite-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { desc, eq } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
 import { useRouter } from "next/router"
-import { FormEventHandler, useRef, useState } from "react"
+import { useMemo, useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-import { Fieldset, ImageInput, Legend } from "@/components/form"
 import { LayoutProps } from "@/components/layout"
 import { LoadingSubmitButton } from "@/components/ui"
 import {
@@ -18,25 +18,24 @@ import {
 } from "@/lib/auth/next-auth-helper-server"
 import { getCompanyInfo } from "@/lib/qbo-api"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
-import {
-  charityRegistrationNumberRegexString,
-  htmlRegularCharactersRegexString,
-} from "@/lib/util/regex"
+import { charityRegistrationNumberRegexString, regularCharacterRegex } from "@/lib/util/regex"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { DataType as DetailsApiDataType } from "@/pages/api/details"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "components/dist/ui/form"
+import { FileInput, Input } from "components/dist/ui/input"
 import { DoneeInfo, accounts, db, sessions } from "db"
 import { RemoveTimestamps } from "utils/dist/db-helper"
-import { base64DataUrlEncodeFile } from "utils/dist/image-helper"
+import { ApiError } from "utils/dist/error"
+import { base64DataUrlEncodeFile, supportedExtensions } from "utils/dist/image-helper"
 import { fetchJsonData } from "utils/dist/request"
-
-const imageHelper = "PNG, JPG, WebP or GIF (max 100kb)."
-const imageNotRequiredHelper = (
-  <>
-    <p className="mb-2">{imageHelper}</p>
-    <p>Choose an image if you wish to replace your saved image</p>
-  </>
-)
-const regularCharacterHelper = "alphanumeric as well as - _ , & @ # ; and whitespace"
 
 type PDoneeInfo = Partial<Omit<RemoveTimestamps<DoneeInfo>, "id" | "userId">>
 
@@ -46,147 +45,233 @@ type Props = {
   itemsFilledIn: boolean
 } & LayoutProps
 
-export default function Details({ doneeInfo, itemsFilledIn }: Props) {
+const MAX_FILE_SIZE = 102400
+const fileSizeRefiner = (file: File | undefined) => {
+  if (!file) return true
+  return file.size < MAX_FILE_SIZE
+}
+const extensionRefiner = (file: File | undefined) => {
+  if (!file) return true
+  const extension = file.name.split(".").pop()
+  console.log({ extension })
+  return extension !== undefined && supportedExtensions.includes(extension)
+}
+const fileOptionalSchema = z
+  .any()
+  .optional()
+  .refine(extensionRefiner, { message: "File must be a PNG, JPG, WebP or GIF" })
+  .refine(fileSizeRefiner, { message: "File must be less than 100kb" })
+const fileRequiredSchema = z
+  .any({ required_error: "This field is required." })
+  .refine(extensionRefiner, { message: "File must be a PNG, JPG, WebP or GIF" })
+  .refine(fileSizeRefiner, { message: "File must be less than 100kb" })
+const zodRegularString = z
+  .string({ required_error: "This field is required." })
+  .regex(regularCharacterRegex, {
+    message:
+      "This field can contain alphanumeric characters and the following special characters: -_,'&@#:()[]",
+  })
+
+function assertFile(file: any): asserts file is File | undefined {
+  if (file && !(file instanceof File)) throw new Error("File must be a file class instance")
+}
+
+export default function Details({ doneeInfo, itemsFilledIn, session }: Props) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const formRef = useRef<HTMLFormElement>(null)
+  const schema = useMemo(
+    () =>
+      z.object({
+        companyName: zodRegularString,
+        companyAddress: zodRegularString.min(10, { message: "Must be at least 10 characters" }),
+        country: zodRegularString.min(2, { message: "Must be at least 2 characters" }),
+        registrationNumber: z
+          .string({ required_error: "This field is required." })
+          .regex(new RegExp(charityRegistrationNumberRegexString), {
+            message: "Canadian registration numbers are of the format: 123456789AA1234",
+          }),
+        signatoryName: zodRegularString.min(5, { message: "Must be at least 5 characters" }),
+        signature: doneeInfo.signature ? fileOptionalSchema : fileRequiredSchema,
+        smallLogo: doneeInfo.smallLogo ? fileOptionalSchema : fileRequiredSchema,
+      }),
+    [doneeInfo],
+  )
+  type Schema = z.infer<typeof schema>
+  const form = useForm<Schema>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      companyAddress: doneeInfo.companyAddress,
+      companyName: doneeInfo.companyName,
+      country: doneeInfo.country,
+      registrationNumber: doneeInfo.registrationNumber ?? undefined,
+      signatoryName: doneeInfo.signatoryName ?? undefined,
+    },
+  })
 
-  async function getFormData() {
-    if (!formRef.current) throw new Error("Form html element has not yet been initialised")
-
-    const formData = new FormData(formRef.current)
-
-    const signature = formData.get("signature") as File
-    const smallLogo = formData.get("smallLogo") as File
-
-    return {
-      companyName: formData.get("companyName") as string,
-      companyAddress: formData.get("companyAddress") as string,
-      country: formData.get("country") as string,
-      registrationNumber: formData.get("registrationNumber") as string,
-      signatoryName: formData.get("signatoryName") as string,
-      signature: signature.name !== "" ? await base64DataUrlEncodeFile(signature) : undefined,
-      smallLogo: smallLogo.name !== "" ? await base64DataUrlEncodeFile(smallLogo) : undefined,
-    }
-  }
-
-  const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
-    event.preventDefault()
+  const onSubmit = async (data: Schema) => {
     setLoading(true)
+    const { signature, smallLogo } = data
+    assertFile(signature)
+    assertFile(smallLogo)
+    const signatureDataUrl = signature ? await base64DataUrlEncodeFile(signature) : undefined
+    const smallLogoDataUrl = smallLogo ? await base64DataUrlEncodeFile(smallLogo) : undefined
 
-    const formData = await getFormData()
     await fetchJsonData("/api/details", {
       method: "POST",
-      body: formData satisfies DetailsApiDataType,
+      body: {
+        ...data,
+        signature: signatureDataUrl,
+        smallLogo: smallLogoDataUrl,
+      } satisfies DetailsApiDataType,
     })
 
     const destination = itemsFilledIn ? "/generate-receipts" : "/items"
     await router.push({
       pathname: destination,
     })
+    console.log("submit")
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="w-full max-w-2xl space-y-4 p-4">
-      <Fieldset className="grid gap-4 sm:grid-cols-2 sm:gap-6">
-        <Legend className="sm:col-span-2">Organisation</Legend>
-        <div className="sm:col-span-2">
-          <Label className="mb-2 inline-block" htmlFor="companyAddress">
-            Address
-          </Label>
-          {/* TODO use text area + multi-line strings? */}
-          <TextInput
-            name="companyAddress"
-            id="companyAddress"
-            minLength={10}
-            defaultValue={doneeInfo.companyAddress}
-            required
-            title={regularCharacterHelper}
-            pattern={htmlRegularCharactersRegexString}
-          />
-        </div>
-        <div>
-          <Label className="mb-2 inline-block" htmlFor="companyName">
-            Legal name
-          </Label>
-          <TextInput
-            id="companyName"
-            name="companyName"
-            defaultValue={doneeInfo.companyName}
-            required
-            title={regularCharacterHelper}
-            pattern={htmlRegularCharactersRegexString}
-          />
-        </div>
-        <div>
-          <Label className="mb-2 inline-block" htmlFor="country">
-            Country
-          </Label>
-          <TextInput
-            name="country"
-            id="country"
-            minLength={2}
-            defaultValue={doneeInfo.country}
-            required
-            title={regularCharacterHelper}
-            pattern={htmlRegularCharactersRegexString}
-          />
-        </div>
-        <div>
-          <Label className="mb-2 inline-block" htmlFor="registrationNumber">
-            Charity registration number
-          </Label>
-          <TextInput
-            name="registrationNumber"
-            id="registrationNumber"
-            minLength={15}
-            defaultValue={doneeInfo.registrationNumber ?? undefined}
-            required
-            title="Canadian registration numbers are of the format: 123456789AA1234"
-            pattern={charityRegistrationNumberRegexString}
-          />
-        </div>
-        <div>
-          <Label className="mb-2 inline-block" htmlFor="signatoryName">
-            Signatory{"'"}s name
-          </Label>
-          <TextInput
-            name="signatoryName"
-            id="signatoryName"
-            minLength={5}
-            defaultValue={doneeInfo.signatoryName ?? undefined}
-            required
-            title={regularCharacterHelper}
-            pattern={htmlRegularCharactersRegexString}
-          />
-        </div>
-        <ImageInput
-          id="signature"
-          label="Image of signatory's signature"
-          maxSize={102400}
-          helper={doneeInfo.signatoryName ? imageNotRequiredHelper : imageHelper}
-          required={!Boolean(doneeInfo.signatoryName)}
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="m-auto my-4 flex w-full max-w-lg flex-col items-stretch justify-center space-y-2 p-4"
+      >
+        {/* <Legend className="sm:col-span-2">Organisation</Legend> */}
+        {/* TODO use text area + multi-line strings? */}
+        <FormField
+          control={form.control}
+          name="companyAddress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription>The legal address of your company/organisation.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <ImageInput
-          id="smallLogo"
-          label="Small image of organisation's logo"
-          maxSize={102400}
-          helper={doneeInfo.smallLogo ? imageNotRequiredHelper : imageHelper}
-          required={!Boolean(doneeInfo.smallLogo)}
+        <FormField
+          control={form.control}
+          name="companyName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Legal name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription>The full name of your organisation.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <div className="flex flex-row items-center justify-center sm:col-span-2">
-          <LoadingSubmitButton loading={loading} color="blue">
-            {itemsFilledIn ? "Generate Receipts" : "Select Qualifying Items"}
-          </LoadingSubmitButton>
-        </div>
-      </Fieldset>
-    </form>
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription>The country your company is based in.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="registrationNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Charity registration number</FormLabel>
+              <FormControl>
+                <Input placeholder="123456789RR0001" {...field} />
+              </FormControl>
+              <FormDescription>
+                Depending on the tax legislation in your country, this may be required.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="signatoryName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Signatory{"'"}s name</FormLabel>
+              <FormControl>
+                <Input placeholder={session.user.name} {...field} />
+              </FormControl>
+              <FormDescription>The name of your designated signatory.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="signature"
+          render={({ field }) => (
+            <FormItem className="pt-4">
+              <FormLabel>Image of signatory{"'"}s signature</FormLabel>
+              <FormControl>
+                <FileInput
+                  {...field}
+                  value={field.value?.fileName}
+                  onChange={event => {
+                    field.onChange(event.target.files?.[0])
+                  }}
+                  type="file"
+                />
+              </FormControl>
+              <FormDescription>
+                An image of your designated signatory{"'"}s signature. Must be in jpeg, png, webp,
+                gif format and less than {Math.floor(MAX_FILE_SIZE / 1024)}.{" "}
+                {doneeInfo.signature && "Choose a file to replace the existing one."}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="smallLogo"
+          render={({ field }) => (
+            <FormItem className="pb-4">
+              <FormLabel>Small image of organisation{"'"}s logo</FormLabel>
+              <FormControl>
+                <FileInput
+                  {...field}
+                  value={field.value?.fileName}
+                  onChange={event => {
+                    field.onChange(event.target.files?.[0])
+                  }}
+                  type="file"
+                />
+              </FormControl>
+              <FormDescription>
+                An image of your designated signatory{"'"}s signature. Must be in jpeg, png, webp,
+                gif format and less than {Math.floor(MAX_FILE_SIZE / 1024)}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <LoadingSubmitButton loading={loading}>
+          {itemsFilledIn ? "Generate Receipts" : "Select Qualifying Items"}
+        </LoadingSubmitButton>
+      </form>
+    </Form>
   )
 }
 
 // --- server-side props --- //
 
-const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res, query }) => {
+const _getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
   const session = await getServerSession(req, res, authOptions)
   if (!session) return signInRedirect("details")
 

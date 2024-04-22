@@ -1,16 +1,37 @@
-import { Checkbox, Label, Spinner } from "flowbite-react"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { signIn } from "next-auth/react"
 import Image from "next/image"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
 import { SignIn } from "@/components/qbo"
+import { Checkbox } from "components/dist/ui/checkbox"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "components/dist/ui/form"
+import { Spinner } from "components/dist/ui/spinner"
+
+const schema = z.object({
+  agree: z.boolean().refine(value => value === true, {
+    message: "You must agree to the terms and conditions",
+  }),
+})
 
 export default function SignInPage() {
-  const [checked, setChecked] = useState(false)
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const callback = searchParams?.get("callback")
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+  })
 
   return (
     <div className="fixed inset-0 flex h-full flex-grow flex-col items-center justify-center gap-8 px-10 align-middle sm:static sm:p-0">
@@ -20,38 +41,48 @@ export default function SignInPage() {
           DonationReceipt.Online
         </h1>
       </div>
-      <form className="flex w-full max-w-md flex-col items-center rounded-lg bg-white p-6 shadow sm:max-w-md sm:p-8 md:mt-0 dark:border dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            defaultChecked={false}
-            id="agree"
-            onChange={e => setChecked(e.currentTarget.checked)}
-          />
-          <Label className="flex" htmlFor="agree">
-            I agree with the&nbsp;
-            <a className="text-primary-600 dark:text-primary-500 hover:underline" href="/forms">
-              terms and conditions
-            </a>
-          </Label>
-        </div>
-        <button
-          className="relative mx-auto mt-4 inline-block rounded-md bg-[#0077C5]"
-          onClick={e => {
-            e.preventDefault()
+      <Form {...form}>
+        <form
+          className="bg-muted/40 flex w-full max-w-md flex-col items-center rounded-lg p-6 shadow sm:max-w-md sm:p-8 md:mt-0"
+          onSubmit={form.handleSubmit(e => {
             setLoading(true)
             signIn("QBO-disconnected", { callbackUrl: "/" + (callback ?? "") })
-          }}
+          })}
         >
-          {loading && (
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Spinner />
-            </div>
-          )}
-          <span className={loading ? "cursor-wait opacity-0" : ""}>
-            <SignIn disabled={!checked} />
-          </span>
-        </button>
-      </form>
+          <FormField
+            name="agree"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel className="flex" htmlFor="agree">
+                    I agree with the&nbsp;
+                    <Link className="!underline" href="/terms/terms">
+                      terms and conditions
+                    </Link>
+                  </FormLabel>
+                </div>
+                <FormMessage {...field} />
+              </FormItem>
+            )}
+          />
+          <button
+            type="submit"
+            className="relative mx-auto mt-4 inline-block rounded-md bg-[#0077C5]"
+          >
+            {loading && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <Spinner />
+              </div>
+            )}
+            <span className={loading ? "cursor-wait opacity-0" : ""}>
+              <SignIn />
+            </span>
+          </button>
+        </form>
+      </Form>
     </div>
   )
 }

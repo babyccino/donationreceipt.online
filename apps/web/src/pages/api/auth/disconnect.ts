@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { NextApiHandler } from "next"
 import { getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import { z } from "zod"
 
 import { serverSignIn } from "@/lib/auth/next-auth-helper-server"
@@ -53,6 +53,7 @@ const handler: NextApiHandler = async (req, res) => {
   const session = await getServerSession(req, res, authOptions)
 
   const queryRealmId = req.query["realmId"]
+  // why?
   if (!session || typeof queryRealmId !== "string")
     return await serverSignIn("QBO-disconnected", req, res, true, "/auth/disconnected")
 

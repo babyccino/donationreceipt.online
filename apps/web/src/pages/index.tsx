@@ -3,50 +3,23 @@ import { accounts, sessions } from "db"
 import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
 import { Session, getServerSession } from "next-auth"
-import { ApiError } from "next/dist/server/api-utils"
+import { ApiError } from "utils/dist/error"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ReactNode } from "react"
-import { twMerge } from "tailwind-merge"
 
 import { LayoutProps } from "@/components/layout"
 import { getAccountList, interceptGetServerSidePropsErrors } from "@/lib/util/get-server-side-props"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import HandDrawnUpArrow from "@/public/svg/hand-drawn-up-arrow.svg"
-import { Link as StyledLink } from "components/dist/link"
 import { db } from "db"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "components/dist/ui/card"
+import { Button } from "components/dist/ui/button"
 
-const _Card = ({
-  href,
-  className,
-  children,
-}: {
-  href: string
-  className?: string
-  children?: ReactNode
-}) => (
-  <Link
-    href={href}
-    className={twMerge(
-      "relative max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700",
-      className,
-    )}
-  >
-    {children}
-  </Link>
-)
-const Body = ({ children }: { children?: ReactNode }) => (
-  <p className="font-normal text-gray-700 dark:text-gray-400">{children}</p>
-)
-const Title = ({ children }: { children?: ReactNode }) => (
-  <h6 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-    {children}
-  </h6>
-)
-const Tick = () => <CheckIcon className="absolute right-2 top-4 h-8 w-8 text-green-400" />
+const Tick = () => <CheckIcon className="text-primary absolute right-2 top-4 h-6 w-6" />
 const Note = ({ children }: { children?: ReactNode }) => (
-  <p className="mt-4 font-bold text-green-400">{children}</p>
+  <p className="text-primary text-sm font-bold">{children}</p>
 )
-const Card = Object.assign(_Card, { Body, Title, Tick, Note })
 const Arrow = () => <HandDrawnUpArrow className="mt-3 h-10 w-10 rotate-180 text-slate-400" />
 
 type Props = {
@@ -54,71 +27,109 @@ type Props = {
   filledIn: { items: boolean; doneeDetails: boolean } | null
 } & LayoutProps
 
-const IndexPage = ({ filledIn, session }: Props) => (
-  <section className="mx-auto max-w-screen-xl space-y-12 p-4 px-4 text-center sm:py-8 lg:py-16">
-    <div>
-      <h1 className="mb-4 text-2xl font-extrabold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl dark:text-white">
-        Speed up your organisation{"'"}s year-end
-      </h1>
-      <p className="mb-8 text-lg font-normal text-gray-500 sm:px-16 lg:px-48 lg:text-xl dark:text-gray-400">
-        In just a few easy steps we can create and send your client{"'"}s donation receipts
-      </p>
-      {!filledIn ||
-        (!filledIn.items && !filledIn.doneeDetails && (
-          <StyledLink href="/items" className="px-5 py-3 text-lg">
-            Get started
-            <ArrowRightIcon className="-mt-1 ml-2 inline-block h-5 w-5" />
-          </StyledLink>
-        ))}
-    </div>
-    <div className="flex w-full flex-col items-center">
-      <Card href={filledIn ? "/account" : "/api/auth/signin"}>
-        <Card.Title>Link your account</Card.Title>
-        <Card.Body>
-          Sign in with your QuickBooks Online account and authorise our application
-        </Card.Body>
-        {filledIn && session?.accountId !== undefined && <Card.Tick />}
-      </Card>
-      <Arrow />
-      <Card href="/items" className="mt-4">
-        <Card.Title>Select your qualifying items</Card.Title>
-        <Card.Body>Select which of your QuickBooks sales items constitute a gift</Card.Body>
-        {filledIn && filledIn.items && <Card.Tick />}
-      </Card>
-      <Arrow />
-      <Card href="/details" className="mt-4">
-        <Card.Title>Enter your organisation{"'"}s details</Card.Title>
-        <Card.Body>
-          Enter necessary information such as registration number, signature, company logo, etc.
-        </Card.Body>
-        {filledIn && filledIn.doneeDetails && <Card.Tick />}
-      </Card>
-      <Arrow />
-      <Card href="/generate-receipts" className="mt-4">
-        <Card.Title>Generate your clients{"'"} receipts</Card.Title>
-        <Card.Body>Receipts can be downloaded individually or all together</Card.Body>
-        {filledIn && filledIn.doneeDetails && filledIn.items && (
-          <>
-            <Card.Tick />
-            <Card.Note>We{"'"}re ready to create your receipts!</Card.Note>
-          </>
-        )}
-      </Card>
-      <Arrow />
-      <Card href="/email" className="mt-4">
-        <Card.Title>Send your donors their receipts</Card.Title>
-        <Card.Body>Automatically email receipts to all qualifying donors</Card.Body>
-        {filledIn && filledIn.doneeDetails && filledIn.items && (
-          <>
-            <Card.Tick />
-            <Card.Note>We{"'"}re ready to send your receipts!</Card.Note>
-          </>
-        )}
-      </Card>
-    </div>
-  </section>
-)
-export default IndexPage
+export default function IndexPage({ filledIn, session }: Props) {
+  const router = useRouter()
+  return (
+    <section className="mx-auto max-w-screen-xl space-y-12 p-4 px-4 text-center sm:py-8 lg:py-16">
+      <div>
+        <h1 className="mb-4 text-2xl font-extrabold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl dark:text-white">
+          Speed up your organisation{"'"}s year-end
+        </h1>
+        <p className="mb-8 text-lg font-normal text-gray-500 sm:px-16 lg:px-48 lg:text-xl dark:text-gray-400">
+          In just a few easy steps we can create and send your client{"'"}s donation receipts
+        </p>
+        {!filledIn ||
+          (!filledIn.items && !filledIn.doneeDetails && (
+            <Button asChild>
+              <Link href="/items" className="px-5 py-3 text-lg">
+                Get started
+                <ArrowRightIcon className="ml-2 inline-block h-5 w-5" />
+              </Link>
+            </Button>
+          ))}
+      </div>
+      <div className="flex w-full flex-col items-center">
+        <Card
+          onClickCapture={e => router.push(filledIn ? "/account" : "/api/auth/signin")}
+          className="bg-card hover:bg-card-hover relative w-full max-w-sm cursor-pointer border-none transition-colors"
+        >
+          <CardHeader>
+            <CardTitle>Link your account</CardTitle>
+            <CardDescription>
+              Sign in with your QuickBooks Online account and authorise our application
+            </CardDescription>
+          </CardHeader>
+          {filledIn && session?.accountId !== undefined && <Tick />}
+        </Card>
+        <Arrow />
+        <Card
+          onClickCapture={e => router.push("/items")}
+          className="bg-card hover:bg-card-hover relative mt-4 w-full max-w-sm cursor-pointer border-none transition-colors"
+        >
+          <CardHeader>
+            <CardTitle>Select your qualifying items</CardTitle>
+            <CardDescription>
+              Select which of your QuickBooks sales items constitute a gift
+            </CardDescription>
+          </CardHeader>
+          {filledIn && filledIn.items && <Tick />}
+        </Card>
+        <Arrow />
+        <Card
+          onClickCapture={e => router.push("/details")}
+          className="bg-card hover:bg-card-hover relative mt-4 w-full max-w-sm cursor-pointer border-none transition-colors"
+        >
+          <CardHeader>
+            <CardTitle>Enter your organisation{"'"}s details</CardTitle>
+            <CardDescription>
+              Enter necessary information such as registration number, signature, company logo, etc.
+            </CardDescription>
+          </CardHeader>
+          {filledIn && filledIn.doneeDetails && <Tick />}
+        </Card>
+        <Arrow />
+        <Card
+          onClickCapture={e => router.push("/generate-receipts")}
+          className="bg-card hover:bg-card-hover relative mt-4 w-full max-w-sm cursor-pointer border-none transition-colors"
+        >
+          <CardHeader>
+            <CardTitle>Generate your clients{"'"} receipts</CardTitle>
+            <CardDescription>
+              Create receipts for all qualifying donations. Receipts can be downloaded individually
+              or all together
+            </CardDescription>
+          </CardHeader>
+          {filledIn && filledIn.doneeDetails && filledIn.items && (
+            <CardContent>
+              <Tick />
+              <p className="text-primary text-sm font-bold">
+                We{"'"}re ready to create your receipts!
+              </p>
+            </CardContent>
+          )}
+        </Card>
+        <Arrow />
+        <Card
+          onClickCapture={e => router.push("/email")}
+          className="bg-card hover:bg-card-hover relative mt-4 w-full max-w-sm cursor-pointer border-none transition-colors"
+        >
+          <CardHeader>
+            <CardTitle>Send your donors their receipts</CardTitle>
+            <CardDescription>Automatically email receipts to all qualifying donors</CardDescription>
+          </CardHeader>
+          {filledIn && filledIn.doneeDetails && filledIn.items && (
+            <CardContent>
+              <Tick />
+              <p className="text-primary text-sm font-bold">
+                We{"'"}re ready to send your receipts!
+              </p>
+            </CardContent>
+          )}
+        </Card>
+      </div>
+    </section>
+  )
+}
 
 // --- server-side props ---
 

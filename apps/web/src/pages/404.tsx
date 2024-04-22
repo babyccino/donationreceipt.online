@@ -1,6 +1,7 @@
 import Head from "next/head"
+import Link from "next/link"
 
-import { Link } from "components/dist/link"
+import { Button } from "components/dist/ui/button"
 
 const FourOhFour = () => (
   <>
@@ -18,12 +19,14 @@ const FourOhFour = () => (
         <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
           Sorry, we can{"'"}t find that page. You{"'"}ll find lots to explore on the home page.
         </p>
-        <Link
-          href="/"
-          className="bg-primary-600 hover:bg-primary-800 focus:ring-primary-300 dark:focus:ring-primary-900 my-4 inline-flex rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white focus:outline-none focus:ring-4"
-        >
-          Back to Homepage
-        </Link>
+        <Button asChild variant="outline">
+          <Link
+            href="/"
+            className="bg-primary-600 hover:bg-primary-800 focus:ring-primary-300 dark:focus:ring-primary-900 my-4 inline-flex rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white focus:outline-none focus:ring-4"
+          >
+            Back to Homepage
+          </Link>
+        </Button>
       </div>
     </section>
   </>

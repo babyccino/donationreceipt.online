@@ -283,4 +283,4 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
   }
 }
 export const getServerSideProps =
-  interceptGetServerSidePropsErrors<GetServerSideProps<SerialisedProps>>(_getServerSideProps)
+  interceptGetServerSidePropsErrors<SerialisedProps>(_getServerSideProps)

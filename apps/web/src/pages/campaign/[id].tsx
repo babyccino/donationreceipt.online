@@ -30,7 +30,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "components/dist/ui/dropdown-menu"
-import { EmailStatus, accounts, db, receipts, sessions } from "db"
+import { accounts, db, receipts, sessions } from "db"
+import { EmailStatus } from "types"
 
 type RecipientStatus = { email: string; donorId: string; emailStatus: EmailStatus }
 type Props = {

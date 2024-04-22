@@ -7,3 +7,13 @@ export type Donation = {
   email: string | null
 }
 export type DonationWithoutAddress = Omit<Donation, "address" | "email">
+
+export type EmailStatus =
+  | "not_sent"
+  | "sent"
+  | "delivered"
+  | "delivery_delayed"
+  | "complained"
+  | "bounced"
+  | "opened"
+  | "clicked"

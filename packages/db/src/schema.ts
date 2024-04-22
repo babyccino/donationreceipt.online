@@ -3,15 +3,7 @@ import { customType, index, integer, sqliteTable, text, uniqueIndex } from "driz
 import { ProviderType } from "next-auth/providers"
 import type { Stripe } from "stripe"
 
-export type EmailStatus =
-  | "not_sent"
-  | "sent"
-  | "delivered"
-  | "delivery_delayed"
-  | "complained"
-  | "bounced"
-  | "opened"
-  | "clicked"
+import { EmailStatus } from "types"
 
 const timestamp = (name: string) =>
   integer(name, { mode: "timestamp_ms" })

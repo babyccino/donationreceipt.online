@@ -8,9 +8,9 @@ import { LayoutProps } from "@/components/layout"
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { config } from "@/lib/env"
 
-export function interceptGetServerSidePropsErrors<T extends GetServerSideProps<any>>(
-  getServerSideProps: T,
-) {
+export function interceptGetServerSidePropsErrors<T extends { [key: string]: any }>(
+  getServerSideProps: GetServerSideProps<T>,
+): GetServerSideProps<T | { error: any }> {
   return async (ctx: any) => {
     if (config.nodeEnv === "test") return await getServerSideProps(ctx)
     try {

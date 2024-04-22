@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach } from "bun:test"
+import { afterAll, afterEach, beforeAll, beforeEach } from "bun:test"
 
 import { APIGatewayProxyEvent } from "aws-lambda"
 import { HttpResponse, http } from "msw"
@@ -7,7 +7,7 @@ import { SetupServer, setupServer } from "msw/node"
 import { _handler as handler } from "lambdas"
 import { makeQueryUrl, makeSalesReportUrl } from "@/lib/qbo-api"
 import { config } from "@/lib/env"
-import { deleteAll, mockResponses, testRealmId } from "./mocks"
+import { createFullUser, deleteAll, mockResponses, testRealmId } from "./mocks"
 
 let server: SetupServer
 beforeAll(async () => {
@@ -19,7 +19,7 @@ beforeAll(async () => {
     endDate: new Date("2022-12-31"),
   })
 
-  const { items, customerQueryResult, itemQueryResponse, customerSalesReport } = mockResponses
+  const { customerQueryResult, itemQueryResponse, customerSalesReport } = mockResponses
   const handlers = [
     http.get(queryUrl, ({ request }) => {
       const url = new URL(request.url)
@@ -62,7 +62,9 @@ beforeAll(async () => {
   server.listen({ onUnhandledRequest: "bypass" })
 })
 
-beforeEach(deleteAll)
+afterEach(deleteAll)
+
+beforeEach(createFullUser)
 
 afterAll(async () => {
   server?.close()

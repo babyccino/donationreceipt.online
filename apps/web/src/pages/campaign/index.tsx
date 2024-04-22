@@ -38,7 +38,7 @@ type Campaign = {
   receiptCount: number
   inCompleteReceiptCount: number
 }
-type Props = {
+export type Props = {
   campaigns: Campaign[]
 } & LayoutProps
 type SerialisedProps = SerialiseDates<Props>
@@ -199,7 +199,7 @@ export default function CampaignList(props: SerialisedProps) {
 
 const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, res }) => {
   const session = await getServerSession(req, res, authOptions)
-  if (!session) return signInRedirect("items")
+  if (!session) return signInRedirect("campaign")
 
   const [account, campaigns, [accountSwitched, accountList]] = await Promise.all([
     db.query.accounts.findFirst({
@@ -282,4 +282,5 @@ const _getServerSideProps: GetServerSideProps<SerialisedProps> = async ({ req, r
     } satisfies Props),
   }
 }
-export const getServerSideProps = interceptGetServerSidePropsErrors(_getServerSideProps)
+export const getServerSideProps =
+  interceptGetServerSidePropsErrors<GetServerSideProps<SerialisedProps>>(_getServerSideProps)

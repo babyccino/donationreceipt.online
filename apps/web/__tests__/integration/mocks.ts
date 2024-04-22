@@ -1,7 +1,6 @@
 import { createId } from "@paralleldrive/cuid2"
 import { eq } from "drizzle-orm"
 
-import { oneHrFromNow } from "utils/dist/date"
 import { getRandomName, randInt } from "utils/dist/etc"
 import {
   ColData,
@@ -30,8 +29,25 @@ import {
   users,
   verificationTokens,
   db,
+  Receipt,
+  EmailStatus,
 } from "db"
 import { toMs } from "utils/dist/time"
+import { endOfPreviousYear, startOfPreviousYear } from "utils/dist/date"
+
+const emailStatuses: readonly EmailStatus[] = [
+  "bounced",
+  "clicked",
+  "complained",
+  "delivered",
+  "delivery_delayed",
+  "not_sent",
+  "opened",
+  "sent",
+] as const
+function getRandomEmailStatus() {
+  return emailStatuses[randInt(0, 7)]
+}
 
 type ResMock = {
   getHeader: () => void
@@ -40,11 +56,7 @@ type ResMock = {
   end: () => void
   json: (json: any) => void
 }
-export function getMockApiContext(
-  method: "GET" | "POST",
-  sessionToken: string,
-  body: any | undefined,
-) {
+function getMockApiContext(method: "GET" | "POST", sessionToken: string, body: any | undefined) {
   const req = {
     method,
     cookies: {
@@ -91,7 +103,7 @@ export function getMockApiContext(
 //   return { req, res }
 // }
 
-export async function createUser(connected: boolean) {
+async function createUser(connected: boolean) {
   const threeDaysFromNow = new Date(Date.now() + 3 * toMs.day)
   const userId = createId()
   const accountId = createId()
@@ -152,10 +164,165 @@ export async function createUser(connected: boolean) {
   return { user: userRes[0], session: sessionRes[0], account: accountRes[0], deleteUser }
 }
 
-export const testRealmId = "123456789"
-const date = new Date("2022-01-01")
+export async function createFullUser() {
+  const threeDaysFromNow = new Date(Date.now() + 3 * toMs.day)
+  const userId = createId()
+  const accountId = createId()
+  const sessionToken = createId()
+  const sessionPromise = db
+    .insert(sessions)
+    .values({
+      id: createId(),
+      expires: threeDaysFromNow,
+      sessionToken,
+      accountId,
+      userId,
+    })
+    .returning()
 
-export const deleteAll = () =>
+  const userPromise = db
+    .insert(users)
+    .values({
+      id: userId,
+      email: Math.round(Math.random() * Math.pow(10, 15)) + "@gmail.com",
+      name: "Test User",
+      country: "ca",
+    })
+    .returning()
+
+  const accountPromise = db
+    .insert(accounts)
+    .values({
+      id: accountId,
+      provider: "QBO",
+      providerAccountId: "QBO",
+      type: "oauth",
+      userId: userId,
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      refreshTokenExpiresAt: threeDaysFromNow,
+      companyName: "Test Company",
+      scope: "accounting",
+      realmId: testRealmId,
+      expiresAt: threeDaysFromNow,
+    })
+    .returning()
+
+  const campaignId = createId()
+  const campaignPromise = db
+    .insert(campaigns)
+    .values({
+      id: campaignId,
+      accountId,
+      endDate: endOfPreviousYear(),
+      startDate: startOfPreviousYear(),
+      name: "Test Campaign",
+    })
+    .returning()
+
+  const receiptPromises: any[] = []
+  const receiptCount = randInt(15, 20)
+  for (let i = 0; i < receiptCount; ++i) {
+    const receiptId = createId()
+    const name = getRandomName()
+    receiptPromises.push(
+      db
+        .insert(receipts)
+        .values({
+          id: receiptId,
+          campaignId,
+          donorId: createId(),
+          emailStatus: getRandomEmailStatus(),
+          name: name,
+          total: randInt(100, 1000),
+          emailId: createId(),
+          email: `${name}@gmail.com`,
+        })
+        .returning(),
+    )
+  }
+
+  const selectedItems = ["1", "2"]
+  const startDate = new Date("2023-01-01")
+  const endDate = new Date("2023-12-31")
+  const userDataId = createId()
+  const userDatasPromise = db
+    .insert(userDatas)
+    .values({
+      accountId,
+      startDate,
+      endDate,
+      id: userDataId,
+      items: selectedItems.join(","),
+    })
+    .returning()
+
+  const [sessionRes, userRes, accountRes, campaignRes, userDatasRes, receiptsRes] =
+    await Promise.all([
+      sessionPromise,
+      userPromise,
+      accountPromise,
+      campaignPromise,
+      userDatasPromise,
+      Promise.all(receiptPromises as Promise<Receipt[]>[]),
+    ])
+
+  if (sessionRes.length !== 1) throw new Error("Expected 1 session to be created")
+  if (userRes.length !== 1) throw new Error("Expected 1 user to be created")
+  if (accountRes.length !== 1) throw new Error("Expected 1 account to be created")
+  if (campaignRes.length !== 1) throw new Error("Expected 1 account to be created")
+  if (userDatasRes.length !== 1) throw new Error("Expected 1 account to be created")
+  for (const receiptRes of receiptsRes) {
+    if (receiptRes.length !== 1) throw new Error("Expected 1 receipt to be created")
+  }
+}
+
+async function createEmailCampaign(accountId: string, receiptCount: number) {
+  const campaignId = createId()
+  const campaignPromise = db
+    .insert(campaigns)
+    .values({
+      id: campaignId,
+      accountId,
+      endDate: endOfPreviousYear(),
+      startDate: startOfPreviousYear(),
+      name: "Test Campaign",
+    })
+    .returning()
+  const receiptPromises: any[] = []
+  for (let i = 0; i < receiptCount; ++i) {
+    const receiptId = createId()
+    const name = getRandomName()
+    receiptPromises.push(
+      db
+        .insert(receipts)
+        .values({
+          id: receiptId,
+          campaignId,
+          donorId: createId(),
+          emailStatus: getRandomEmailStatus(),
+          name: name,
+          total: randInt(100, 1000),
+          emailId: createId(),
+          email: `${name}@gmail.com`,
+        })
+        .returning(),
+    )
+  }
+
+  const [[campaign], receiptList] = await Promise.all([
+    campaignPromise,
+    Promise.all(receiptPromises).then(res => res.flat()) as Promise<Receipt[]>,
+  ])
+  if (!campaign) {
+    throw new Error("campaign was not created")
+  }
+  return { campaign, receipts: receiptList }
+}
+
+const testRealmId = "123456789"
+
+const deleteAll = () =>
   Promise.all([
     db.delete(sessions),
     db.delete(users),
@@ -172,7 +339,7 @@ export const deleteAll = () =>
     db.delete(verificationTokens),
   ])
 
-export const mockDoneeInfo = (accountId: string) => ({
+const mockDoneeInfo = (accountId: string) => ({
   id: createId(),
   accountId,
   companyAddress: "123 Fake St",
@@ -252,7 +419,7 @@ const itemQueryResponseItemsShared = {
 const testEmails = ["success", "bounce", "ooto", "complaint", "suppressionlist"] as const
 const testEmailDomain = "simulator.amazonses.com"
 
-export function createMockResponses(itemCount: number, donorCount: number) {
+function createMockResponses(itemCount: number, donorCount: number) {
   const customerSalesReportColumns: CustomerSalesReport["Columns"]["Column"] = [
     {
       ColTitle: "Name",
@@ -385,4 +552,14 @@ export function createMockResponses(itemCount: number, donorCount: number) {
   return { items, customers, itemQueryResponse, customerQueryResult, customerSalesReport }
 }
 
-export const mockResponses = createMockResponses(15, 30)
+const mockResponses = createMockResponses(15, 30)
+export {
+  getMockApiContext,
+  testRealmId,
+  deleteAll,
+  mockDoneeInfo,
+  createMockResponses,
+  mockResponses,
+  createUser,
+  createEmailCampaign,
+}

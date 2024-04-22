@@ -225,7 +225,6 @@ export async function getCustomerData(
 export async function getItems(accessToken: string, realmId: string) {
   const url = makeQueryUrl(realmId.toString(), "select * from Item")
   const itemQuery = await fetchJsonData<ItemQueryResponse>(url, { bearer: accessToken })
-  console.log("itemQuery", itemQuery.QueryResponse.Item)
   return formatItemQuery(itemQuery)
 }
 

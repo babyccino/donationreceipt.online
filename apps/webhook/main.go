@@ -26,6 +26,27 @@ func main() {
 	}
 }
 
+func getEnv() (dbUrl string, dbAuthToken string, snsArn string, err error) {
+	dbUrl, dbUrlExists := os.LookupEnv("LIB_SQL_DB_URL")
+	dbAuthToken, dbAuthTokenExists := os.LookupEnv("LIB_SQL_AUTH_TOKEN")
+	snsArn, snsArnExists := os.LookupEnv("SNS_ARN")
+	if !dbUrlExists || !snsArnExists || !dbAuthTokenExists {
+		err := godotenv.Load("./.env")
+		if err != nil {
+			log.Fatal("env variables not found and .env file not found")
+		}
+
+		dbUrl, dbUrlExists = os.LookupEnv("LIB_SQL_DB_URL")
+		dbAuthToken, dbAuthTokenExists = os.LookupEnv("LIB_SQL_AUTH_TOKEN")
+		snsArn, snsArnExists = os.LookupEnv("SNS_ARN")
+		if !dbUrlExists || !snsArnExists || !dbAuthTokenExists {
+			return "", "", "", errors.New("env variables not found in .env file")
+		}
+	}
+
+	return dbUrl, dbAuthToken, snsArn, nil
+}
+
 // run initializes the chatServer and then
 // starts a http.Server for the passed in address.
 func run() error {
@@ -33,24 +54,15 @@ func run() error {
 		return errors.New("please provide an address to listen on as the first argument")
 	}
 
-	dbUrl, dbUrlExists := os.LookupEnv("LIB_SQL_DB_URL")
-	snsArn, snsArnExists := os.LookupEnv("SNS_ARN")
-	if !dbUrlExists || !snsArnExists {
-		err := godotenv.Load("./.env")
-		if err != nil {
-			log.Fatal("env variables not found and .env file not found")
-		}
-
-		dbUrl, dbUrlExists = os.LookupEnv("LIB_SQL_DB_URL")
-		snsArn, snsArnExists = os.LookupEnv("SNS_ARN")
-		if !dbUrlExists || !snsArnExists {
-			return errors.New("env variables not found in .env file")
-		}
+	dbUrl, dbAuthToken, snsArn, err := getEnv()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[fatal-error] %s",  err)
+		os.Exit(1)
 	}
 
-	db, err := sql.Open("libsql", dbUrl)
+	db, err := sql.Open("libsql", fmt.Sprintf("%s?authToken=%s", dbUrl, dbAuthToken))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[error] failed to open db %s: %s", dbUrl, err)
+		fmt.Fprintf(os.Stderr, "[fatal-error] failed to open db %s: %s", dbUrl, err)
 		os.Exit(1)
 	}
 

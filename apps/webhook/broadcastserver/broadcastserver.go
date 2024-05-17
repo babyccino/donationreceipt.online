@@ -40,13 +40,13 @@ type subscriberGroup struct {
 func newSubscriberGroup(maxEventAge time.Duration) *subscriberGroup {
 	return &subscriberGroup{
 		subscribersLock: sync.Mutex{},
-		subscribers: make(map[*subscriber]struct{}),
-		eventsLock: sync.Mutex{},
-		events: make([]SubscriberGroupEvent, 0),
-		maxEventAge: maxEventAge,
-		lastFlushed: time.Now(),
-		createdAt:   time.Now(),
-		updatedAt:   time.Now(),
+		subscribers:     make(map[*subscriber]struct{}),
+		eventsLock:      sync.Mutex{},
+		events:          make([]SubscriberGroupEvent, 0),
+		maxEventAge:     maxEventAge,
+		lastFlushed:     time.Now(),
+		createdAt:       time.Now(),
+		updatedAt:       time.Now(),
 	}
 }
 
@@ -109,13 +109,13 @@ func (subGroup *subscriberGroup) flush() {
 type BroadcastServer struct {
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
-	logf func(f string, v ...interface{})
-	serveMux http.ServeMux
+	logf                func(f string, v ...interface{})
+	serveMux            http.ServeMux
 	subscriberGroupLock sync.Mutex
 	subscriberGroupMap  map[string]*subscriberGroup
-	snsArn string
-	db *sql.DB
-	maxEventAge time.Duration
+	snsArn              string
+	db                  *sql.DB
+	maxEventAge         time.Duration
 }
 
 func NewBroadcastServer(snsArn string, db *sql.DB, maxEventAge time.Duration) (*BroadcastServer, error) {
@@ -256,7 +256,15 @@ UPDATE receipts
 
 	res, err := server.db.Exec(sqlStatement, sql.Named("emailStatus", status), sql.Named("emailId", emailId), sql.Named("campaignId", campaignId), sql.Named("donorId", donorId))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[error] an error occured writing to the db %s", err)
+		fmt.Fprintf(
+			os.Stderr,
+			"[error] an error occured writing to the db:\n%s\nemailStatus: %s\nemailId: %s\n campaignId: %s\ndonorId: %s",
+			err,
+			status,
+			emailId,
+			campaignId,
+			donorId,
+		)
 		return err
 	}
 

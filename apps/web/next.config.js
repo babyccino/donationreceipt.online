@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   webpack(config) {
-    config.resolve.alias.canvas = false;
+    config.resolve.alias.canvas = false
     config.module.rules.push({
       test: /\.svg$/,
       use: ["@svgr/webpack"],
@@ -35,29 +35,7 @@ module.exports = {
   experimental: {
     outputFileTracingExcludes: {
       // Avoids including canvas in the trace to avoid 50 Mb+ serverless functions
-      '*': ['../../node_modules/canvas*', 'node_modules/canvas*']
-    }
+      "*": ["../../node_modules/canvas*", "node_modules/canvas*"],
+    },
   },
 }
-
-// Injected content via Sentry wizard below
-
-const { withSentryConfig } = require("@sentry/nextjs")
-
-module.exports = withSentryConfig(
-  module.exports,
-  {
-    silent: true,
-    org: "gusryanme",
-    project: "donationreceipt-online",
-  },
-  {
-    widenClientFileUpload: true,
-    transpileClientSDK: true,
-    tunnelRoute: "/monitoring",
-    hideSourceMaps: true,
-    disableLogger: true,
-    automaticVercelMonitors: true,
-    disableClientWebpackPlugin: true,
-  },
-)

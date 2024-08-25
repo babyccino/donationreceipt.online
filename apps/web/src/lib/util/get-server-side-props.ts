@@ -1,4 +1,3 @@
-import { captureException } from "@sentry/nextjs"
 import { accounts, db, sessions } from "db"
 import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
 import { GetServerSideProps } from "next"
@@ -17,7 +16,6 @@ export function interceptGetServerSidePropsErrors<T extends { [key: string]: any
       return await getServerSideProps(ctx)
     } catch (error: any) {
       console.error("Error in getServerSideProps: ", error)
-      captureException(error)
       const serialisedError: any = {}
       if (error.message) serialisedError.message = error.message
       if (error.stack) serialisedError.stack = error.stack

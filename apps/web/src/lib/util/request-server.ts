@@ -1,4 +1,3 @@
-import { captureException } from "@sentry/nextjs"
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next"
 import { Session, getServerSession } from "next-auth"
 
@@ -35,7 +34,6 @@ export function createAuthorisedHandler<T>(
     try {
       await handler(req, res, session)
     } catch (error) {
-      captureException(error)
       console.error(error)
       if (!(error instanceof ApiError)) return res.status(500).send("unknown server error" as any)
       const serialisedError: any = {}
